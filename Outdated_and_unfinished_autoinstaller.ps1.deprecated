@@ -1,3 +1,17 @@
+<#
+.DEPRECATED
+    This script is outdated and incomplete. Use install.ps1 from the repo root instead.
+    It is kept for reference only.
+    
+    What's wrong with this script:
+    - Only installs 4 of ~17 components
+    - Contains Polish debug strings ("Ścieżka do MSI")
+    - No system restore point
+    - No error handling / rollback
+    - No logging
+    - Fragile relative paths
+#>
+
 # Check if running as administrator
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
 {

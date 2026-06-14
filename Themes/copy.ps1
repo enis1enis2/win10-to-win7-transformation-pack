@@ -1,15 +1,17 @@
-# Check if running as administrator
-if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
-{
-    # Relaunch as administrator
-    Start-Process PowerShell -Verb RunAs "-File `"$PSCommandPath`""
-    exit
+#requires -RunAsAdministrator
+
+$scriptDir = Split-Path -Parent $PSCommandPath
+$powerRun = "$scriptDir\..\PowerRun\PowerRun_x64.exe"
+
+if (-not (Test-Path $powerRun)) {
+    Write-Error "PowerRun not found at: $powerRun"
+    exit 1
 }
 
-# Ensure script runs in its own directory
-Set-Location -Path (Split-Path -Parent $PSCommandPath)
+$copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$scriptDir\*' -Destination 'C:\Windows\Resources\Themes\' -Recurse -Force"
+$cleanCmd = "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path 'C:\Windows\Resources\Themes\copy.ps1' -Force"
 
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '.\*' -Destination 'C:\Windows\Resources\Themes\' -Recurse -Force" -Wait -WindowStyle Hidden
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path 'C:\Windows\Resources\Themes\copy.ps1' -Force" -Wait -WindowStyle Hidden
+Start-Process $powerRun -ArgumentList $copyCmd -Wait -WindowStyle Hidden
+Start-Process $powerRun -ArgumentList $cleanCmd -Wait -WindowStyle Hidden
 
-Write-Host "Files copied successfully!" -ForegroundColor Green
+Write-Host "Themes copied to C:\Windows\Resources\Themes" -ForegroundColor Green
