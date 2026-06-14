@@ -1,6 +1,13 @@
 # Ensure script runs in its own directory
 Set-Location -Path (Split-Path -Parent $PSCommandPath)
 
+# === Backup existing files before modification ===
+$__sDir = Split-Path -Parent $PSCommandPath
+$__bkMod = Join-Path $__sDir "..\Backup\BackupModule.ps1"
+if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $__sDir "..\Backup") | Out-Null }
+
+
+
 # Copy "usercpl.dll.mui" located at
 # "CPL Restoration\Pages\User Accounts CPL\7 Style\system32\en-US"
 # into
@@ -12,6 +19,8 @@ Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -Execut
 # Use Resource Hacker to import the included resource file(usercpl.res,located in "CPL Restoration\Pages\User Accounts CPL\7 Style\systemresources\usercpl.dll.mun" 
 # into the usercpl.dll.mun file 
 # KOPY  "CPL Restoration 4.0 H1\Pages\User Accounts CPLusercpl.dll.mun" into "C:\Windows\SystemResources\usercpl.dll.mun" 
+# Backup: original usercpl.dll.mun before ResourceHacker patching
+Backup-File -Path "C:\Windows\SystemResources\usercpl.dll.mun" -UsePowerRun
 Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\SystemResources\usercpl.dll.mun' -Destination '.\Pages\User Accounts CPL\' -Recurse -Force" -Wait -WindowStyle Hidden
 Start-Process ".\..\resource_hacker\ResourceHacker.exe" -ArgumentList '-open ".\Pages\User Accounts CPL\usercpl.dll.mun"', '-resource "Pages\User Accounts CPL\7 Style\systemresources\usercpl.dll.mun\usercpl.res"', '-save ".\Pages\User Accounts CPL\usercpl.dll.mun"', '-action addoverwrite'
 Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '.\Pages\User Accounts CPL\usercpl.dll.mun' -Destination 'C:\Windows\SystemResources\' -Recurse -Force" -Wait -WindowStyle Hidden
@@ -21,6 +30,8 @@ Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -Execut
 # Use Resource Hacker to import the included resource file(shacct.res,located in "Pages\User Accounts CPL\7 Style\system32\shacct.dll" 
 # into the shacct.dll file located in "CPL Restoration 4.0 H1\Pages\User Accounts CPL"
 # KOPY "CPL Restoration 4.0 H1\Pages\User Accounts CPL\shacct.dll" into "C:\Windows\system32" 
+# Backup: original shacct.dll before ResourceHacker patching
+Backup-File -Path "C:\Windows\system32\shacct.dll" -UsePowerRun
 Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\system32\shacct.dll' -Destination '.\Pages\User Accounts CPL\' -Recurse -Force" -Wait -WindowStyle Hidden
 Start-Process ".\..\resource_hacker\ResourceHacker.exe" -ArgumentList '-open ".\Pages\User Accounts CPL\shacct.dll"', '-resource ".\Pages\User Accounts CPL\7 Style\system32\shacct.dll\shacct.res"', '-save ".\Pages\User Accounts CPL\shacct.dll"', '-action addoverwrite'
 Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '.\Pages\User Accounts CPL\shacct.dll' -Destination 'C:\Windows\system32\' -Recurse -Force" -Wait -WindowStyle Hidden

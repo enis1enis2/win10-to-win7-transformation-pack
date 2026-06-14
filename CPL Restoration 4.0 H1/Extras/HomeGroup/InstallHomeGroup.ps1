@@ -17,6 +17,10 @@ $scriptDir = Split-Path -Parent $PSCommandPath
 $powerRun = "$scriptDir\..\..\PowerRun\PowerRun_x64.exe"
 $sys32 = "$env:SystemRoot\System32"
 
+# === Backup existing files before modification ===
+$__bkMod = Join-Path $scriptDir "..\..\Backup\BackupModule.ps1"
+if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $scriptDir "..\..\Backup") | Out-Null }
+
 function Write-Status {
     param([string]$Msg, [string]$Color = "White")
     Write-Host $Msg -ForegroundColor $Color
@@ -30,6 +34,10 @@ $dllDst = "$sys32\stobject.dll"
 $muiDst = "$sys32\en-US\stobject.dll.mui"
 
 if ((Test-Path $dllSrc) -and (Test-Path $muiSrc)) {
+    # Backup original files before replacing
+    Backup-File -Path "$dllDst" -UsePowerRun
+    Backup-File -Path "$muiDst" -UsePowerRun
+    
     $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$dllSrc' -Destination '$dllDst' -Force"
     Start-Process $powerRun -ArgumentList $copyCmd -Wait -WindowStyle Hidden
     $copyCmd2 = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$muiSrc' -Destination '$muiDst' -Force"

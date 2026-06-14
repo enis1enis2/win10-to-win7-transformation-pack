@@ -130,7 +130,15 @@ function Install-Msi {
     param([string]$MsiPath)
     if (-not (Test-Path $MsiPath)) { return $false }
     $p = Start-Process msiexec.exe -ArgumentList "/i `"$MsiPath`" /passive /norestart" -Wait -PassThru -NoNewWindow
-    return ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010)
+    if ($p.ExitCode -eq 3010) {
+        Write-Log "MSI installed but system restart is required" "WARN"
+        return $true
+    } elseif ($p.ExitCode -eq 0) {
+        return $true
+    } else {
+        Write-Log "MSI installation failed with exit code $($p.ExitCode): $MsiPath" "ERROR"
+        return $false
+    }
 }
 
 function Install-Executable {
@@ -159,9 +167,17 @@ function Install-SecureUxTheme {
 function Install-Theme {
     Write-Log "--- Installing Windows 7 Aero Themes ---"
     if ($PSCmdlet.ShouldProcess("Theme files to C:\Windows\Resources\Themes", "Copy")) {
+        if ($WhatIfPreference) {
+            Write-Log "WHATIF: Would copy theme files to C:\Windows\Resources\Themes" "INFO"
+            return $true
+        }
         $themeScript = "$scriptDir\Themes\copy.ps1"
         if (Test-Path $themeScript) {
             & $themeScript
+            if (-not $?) {
+                Write-Log "Theme script failed with exit code $LASTEXITCODE" "ERROR"
+                return $false
+            }
             Write-Log "Theme files copied. Available themes (30 variants):" "OK"
             Get-ChildItem "$scriptDir\Themes\*.theme" | ForEach-Object {
                 Write-Log "  - $($_.BaseName)" "INFO"
@@ -220,9 +236,17 @@ function Install-Windhawk {
 
 function Install-WindhawkResources {
     Write-Log "--- Windhawk Resource Redirect ---"
+    if ($WhatIfPreference) {
+        Write-Log "WHATIF: Would copy Windhawk ResourceRedirect files" "INFO"
+        return $true
+    }
     $resourceScript = "$scriptDir\Windhawk\copyResources.ps1"
     if (Test-Path $resourceScript) {
         & $resourceScript
+        if (-not $?) {
+            Write-Log "Windhawk resource script failed with exit code $LASTEXITCODE" "ERROR"
+            return $false
+        }
         Write-Log "ResourceRedirect files copied" "OK"
     } else {
         Write-Log "Windhawk copyResources.ps1 not found" "WARN"
@@ -238,9 +262,17 @@ function Install-WindhawkResources {
 
 function Install-Sounds {
     Write-Log "--- Applying Windows 7 Sounds ---"
+    if ($WhatIfPreference) {
+        Write-Log "WHATIF: Would copy and apply Windows 7 sound scheme" "INFO"
+        return $true
+    }
     $sndScript = "$scriptDir\Sounds\copyAndApplyWindows7Sounds.ps1"
     if (Test-Path $sndScript) {
         & $sndScript
+        if (-not $?) {
+            Write-Log "Sound script failed with exit code $LASTEXITCODE" "ERROR"
+            return $false
+        }
         Write-Log "Windows 7 sound scheme applied" "OK"
         return $true
     }
@@ -250,9 +282,17 @@ function Install-Sounds {
 
 function Install-Branding {
     Write-Log "--- Applying Windows 7 Branding ---"
+    if ($WhatIfPreference) {
+        Write-Log "WHATIF: Would apply Windows 7 branding" "INFO"
+        return $true
+    }
     $brScript = "$scriptDir\Branding\copy.ps1"
     if (Test-Path $brScript) {
         & $brScript
+        if (-not $?) {
+            Write-Log "Branding script failed with exit code $LASTEXITCODE" "ERROR"
+            return $false
+        }
         Write-Log "Windows 7 branding applied" "OK"
         return $true
     }
@@ -346,9 +386,17 @@ function Install-CPL {
 
 function Install-UserTiles {
     Write-Log "--- Installing Windows 7 User Tiles ---"
+    if ($WhatIfPreference) {
+        Write-Log "WHATIF: Would install Windows 7 user tiles" "INFO"
+        return $true
+    }
     $tileScript = "$scriptDir\User tiles\copy.ps1"
     if (Test-Path $tileScript) {
         & $tileScript
+        if (-not $?) {
+            Write-Log "User tiles script failed with exit code $LASTEXITCODE" "ERROR"
+            return $false
+        }
         Write-Log "User tiles installed" "OK"
         return $true
     }
@@ -441,9 +489,17 @@ function Install-HackBGRT {
 
 function Install-HomeGroup {
     Write-Log "--- Restoring HomeGroup ---"
+    if ($WhatIfPreference) {
+        Write-Log "WHATIF: Would restore HomeGroup" "INFO"
+        return $true
+    }
     $hgScript = "$scriptDir\CPL Restoration 4.0 H1\Extras\HomeGroup\InstallHomeGroup.ps1"
     if (Test-Path $hgScript) {
         & $hgScript
+        if (-not $?) {
+            Write-Log "HomeGroup script failed with exit code $LASTEXITCODE" "ERROR"
+            return $false
+        }
         Write-Log "HomeGroup restoration complete" "OK"
         return $true
     }
@@ -453,9 +509,17 @@ function Install-HomeGroup {
 
 function Install-DefaultPrograms {
     Write-Log "--- Fixing Default Programs CPL dead links ---"
+    if ($WhatIfPreference) {
+        Write-Log "WHATIF: Would fix Default Programs CPL dead links" "INFO"
+        return $true
+    }
     $dpScript = "$scriptDir\CPL Restoration 4.0 H1\DefaultPrograms.ps1"
     if (Test-Path $dpScript) {
         & $dpScript
+        if (-not $?) {
+            Write-Log "DefaultPrograms script failed with exit code $LASTEXITCODE" "ERROR"
+            return $false
+        }
         Write-Log "Default Programs CPL fix applied" "OK"
         return $true
     }
@@ -557,6 +621,24 @@ function Install-Components {
 
     if (-not $NoRestorePoint -and -not $WhatIfPreference) { New-RestorePoint }
 
+    # Load backup module and initialize backup session
+    Write-Log "Initializing backup system..." "INFO"
+    $backupMod = Join-Path $scriptDir "Backup\BackupModule.ps1"
+    if (Test-Path $backupMod) {
+        . $backupMod
+        $backupSession = Initialize-Backup
+        Write-Log "Backup initialized: $backupSession" "INFO"
+
+        # Create full backup snapshot of all system files the pack touches
+        if (-not $WhatIfPreference) {
+            Write-Log "Creating backup snapshot of system files..." "INFO"
+            $backupCount = Backup-AllSystemFiles
+            Write-Log "Snapshot complete: $backupCount files/directories backed up" "OK"
+        }
+    } else {
+        Write-Log "BackupModule not found at $backupMod" "WARN"
+    }
+
     $successCount = 0
     $failCount = 0
 
@@ -591,70 +673,67 @@ function Install-Components {
 }
 
 # --- Main ---
-Start-Transcript -Path "$scriptDir\install_transcript.log" -Append | Out-Null
-Write-Log "=== Windows 10 to Windows 7 Transformation Pack Installer ===" "INFO"
-Write-Log "Started at $(Get-Date)" "INFO"
-Write-Log "Language: $global:InstallLanguage" "INFO"
-if ($WhatIfPreference) { Write-Log "WHATIF mode enabled — no changes will be applied" "WARN" }
+try {
+    Start-Transcript -Path "$scriptDir\install_transcript.log" -Append | Out-Null
+    Write-Log "=== Windows 10 to Windows 7 Transformation Pack Installer ===" "INFO"
+    Write-Log "Started at $(Get-Date)" "INFO"
+    Write-Log "Language: $global:InstallLanguage" "INFO"
+    if ($WhatIfPreference) { Write-Log "WHATIF mode enabled — no changes will be applied" "WARN" }
 
-if (-not (Test-Prerequisites)) {
-    Write-Log "Prerequisites check failed. Fix the issues above and re-run." "ERROR"
-    Stop-Transcript
-    exit 1
-}
-
-if ($Silent -and -not $All -and -not $Components) {
-    Write-Log "-Silent requires either -All or -Components" "ERROR"
-    Stop-Transcript
-    exit 1
-}
-
-if ($All) {
-    $selectedComponents = $componentMap.Name
-} elseif ($Components) {
-    $selectedComponents = $Components -split ',' | ForEach-Object { $_.Trim() }
-} else {
-    Show-Menu
-    $input = Read-Host "Enter choice(s)"
-    if ($input -eq 'Q' -or $input -eq 'q') {
-        Write-Log "Installation cancelled by user" "INFO"
-        Stop-Transcript
-        exit 0
+    if (-not (Test-Prerequisites)) {
+        Write-Log "Prerequisites check failed. Fix the issues above and re-run." "ERROR"
+        exit 1
     }
-    if ($input -eq 'A' -or $input -eq 'a') {
+
+    if ($Silent -and -not $All -and -not $Components) {
+        Write-Log "-Silent requires either -All or -Components" "ERROR"
+        exit 1
+    }
+
+    if ($All) {
         $selectedComponents = $componentMap.Name
+    } elseif ($Components) {
+        $selectedComponents = $Components -split ',' | ForEach-Object { $_.Trim() }
     } else {
-        $indices = $input -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^\d+$' }
-        $selectedComponents = $indices | ForEach-Object {
-            $idx = [int]$_ - 1
-            if ($idx -ge 0 -and $idx -lt $componentMap.Count) { $componentMap[$idx].Name }
+        Show-Menu
+        $input = Read-Host "Enter choice(s)"
+        if ($input -eq 'Q' -or $input -eq 'q') {
+            Write-Log "Installation cancelled by user" "INFO"
+            exit 0
         }
-        if ($selectedComponents.Count -eq 0) {
-            Write-Log "No valid components selected" "ERROR"
-            Stop-Transcript
-            exit 1
+        if ($input -eq 'A' -or $input -eq 'a') {
+            $selectedComponents = $componentMap.Name
+        } else {
+            $indices = $input -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^\d+$' }
+            $selectedComponents = $indices | ForEach-Object {
+                $idx = [int]$_ - 1
+                if ($idx -ge 0 -and $idx -lt $componentMap.Count) { $componentMap[$idx].Name }
+            }
+            if ($selectedComponents.Count -eq 0) {
+                Write-Log "No valid components selected" "ERROR"
+                exit 1
+            }
         }
     }
-}
 
-# Resolve dependencies
-Test-Dependencies -SelectedComponents $selectedComponents
+    # Resolve dependencies
+    Test-Dependencies -SelectedComponents $selectedComponents
 
-# Deduplicate
-$selectedComponents = $selectedComponents | Select-Object -Unique
+    # Deduplicate
+    $selectedComponents = $selectedComponents | Select-Object -Unique
 
-# Confirm with user in interactive mode
-if (-not $Silent -and -not $All -and -not $WhatIfPreference) {
-    Write-Host ""
-    Write-Host "Components to install: $($selectedComponents -join ', ')" -ForegroundColor Cyan
-    $confirm = Read-Host "Proceed? (Y/N)"
-    if ($confirm -ne 'Y' -and $confirm -ne 'y') {
-        Write-Log "Installation cancelled by user" "INFO"
-        Stop-Transcript
-        exit 0
+    # Confirm with user in interactive mode
+    if (-not $Silent -and -not $All -and -not $WhatIfPreference) {
+        Write-Host ""
+        Write-Host "Components to install: $($selectedComponents -join ', ')" -ForegroundColor Cyan
+        $confirm = Read-Host "Proceed? (Y/N)"
+        if ($confirm -ne 'Y' -and $confirm -ne 'y') {
+            Write-Log "Installation cancelled by user" "INFO"
+            exit 0
+        }
     }
+
+    Install-Components -Components $selectedComponents
+} finally {
+    try { Stop-Transcript | Out-Null } catch { }
 }
-
-Install-Components -Components $selectedComponents
-
-Stop-Transcript

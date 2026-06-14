@@ -3,6 +3,13 @@
 # Ensure script runs in its own directory
 Set-Location -Path (Split-Path -Parent $PSCommandPath)
 
+# === Backup existing files before modification ===
+$__sDir = Split-Path -Parent $PSCommandPath
+$__bkMod = Join-Path $__sDir "..\Backup\BackupModule.ps1"
+if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $__sDir "..\Backup") | Out-Null }
+
+
+
 #Import the .reg files located at "CPL Restoration\Pages\Genuine Center CPL\Import as TrustedInstaller" as TrustedInstaller.
 Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList 'reg import "Pages\Genuine Center CPL\Import as TrustedInstaller\genuine.reg"' -WindowStyle Hidden -Wait
 
