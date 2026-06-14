@@ -282,22 +282,18 @@ Then select which control panel pages to restore (grouped by status):
 | HomeGroups | `HomeGroups.ps1` | |
 | Language | `Language.ps1` | Decoration on 1809+; use Windhawk for IME |
 | Mobility Center | `MobilityCenter.ps1` | |
+| Network and Sharing Center | `NetworkAndSharingCenter.ps1` | Auto-patches netcenter.dll via ResourceHacker; PNIDUI.dll for flyout (external) |
+| Network Map | `NetworkMap.ps1` | LLTDIO enabled automatically via registry |
 | Notification Tray Icons | `NotificationTrayIcons.ps1` | |
 | Parental Controls/Family Safety | `ParentalControls-FamilySafety.ps1` | |
 | Performance Information and Tools | `PerformanceInformationAndTools.ps1` | |
 | Recovery | `Recovery.ps1` | |
 | Region and Input | `RegionAndInput.ps1` | |
+| Security Center and Firewall CPL | `SecurityCenterAndFirewall.ps1` | Vista style page |
 | System | `System.ps1` | |
 | User Accounts CPL | `UserAccounts.ps1` | |
 | Windows Cardspace | `WindowsCardspace.ps1` | Requires .NET 3.5 enabled |
-
-**🔄 Partial**
-| Page | Script | Notes |
-|---|---|---|
-| Network and Sharing Center | `NetworkAndSharingCenter.ps1` | Needs Resource Hacker to patch netcenter.dll + external PNIDUI.dll for flyout |
-| Network Map | `NetworkMap.ps1` | Needs LLTDIO driver enabled via gpedit.msc |
-| Security Center and Firewall CPL | `SecurityCenterAndFirewall.ps1` | Vista style page |
-| Windows Update | `WindowsUpdate.ps1` | Decoration only — tile appears, no actual scanning |
+| Windows Update | `WindowsUpdate.ps1` | Decoration — tile appears in Control Panel |
 
 **🚫 Won't do**
 | Page | Reason |
