@@ -287,6 +287,7 @@ Then select which control panel pages to restore (grouped by status):
 | Notification Tray Icons | `NotificationTrayIcons.ps1` | |
 | Parental Controls/Family Safety | `ParentalControls-FamilySafety.ps1` | |
 | Performance Information and Tools | `PerformanceInformationAndTools.ps1` | |
+| Printers | `Printers.ps1` | Built-in Vista style already functional |
 | Recovery | `Recovery.ps1` | |
 | Region and Input | `RegionAndInput.ps1` | |
 | Security Center and Firewall CPL | `SecurityCenterAndFirewall.ps1` | Vista style page |
@@ -299,7 +300,6 @@ Then select which control panel pages to restore (grouped by status):
 | Page | Reason |
 |---|---|
 | Personalization | Can't be done in Windows 10 |
-| Printers | Already functional via built-in Vista style |
 
 ### Default Programs CPL Fix
 The `DefaultPrograms.ps1` script fixes dead sub-page links on the Default Programs page (Issue #5). 
