@@ -47,6 +47,8 @@ Proceed step-by-step if you prefer full control.
 - [Sounds](#sounds)
 - [Logon screen](#logon-screen)
 - [Control Panel Restoration 4.0 H1 Automatic Setup](#control-panel-restoration-40-h1-automatic-setup)
+- [Default Programs CPL Fix](#default-programs-cpl-fix)
+- [HomeGroup Restoration](#homegroup-restoration)
 - [Windows 7 Logo Branding](#windows-7-logo-branding)
 - [Non-XAML UAC](#non-xaml-uac)
 - [HackBGRT](#hackbgrt)
@@ -143,9 +145,10 @@ I've created a PowerShell script that makes the installation of the control pane
 Then select which control panel pages to restore:
 
 | Page | Script | Status |
-|---|---|---|
+|---|---|---|---|
 | Backup and Restore | `BackupAndRestore.ps1` | ✅ Functional |
 | Biometric Devices | `BiometricDevices.ps1` | ✅ Functional |
+| Default Programs | `DefaultPrograms.ps1` | ✅ Fix applied (sub-page dead links) |
 | Display | `Display.ps1` | ✅ Functional |
 | Game Controllers | `GameControllers.ps1` | ✅ Functional |
 | Genuine Center | `GenuineCenter.ps1` | ✅ Functional |
@@ -166,6 +169,25 @@ Then select which control panel pages to restore:
 | User Accounts CPL | `UserAccounts.ps1` | ✅ Functional |
 | Windows Cardspace | `WindowsCardspace.ps1` | 🔄 In progress |
 | Windows Update | `WindowsUpdate.ps1` | Decoration only |
+
+### Default Programs CPL Fix
+The `DefaultPrograms.ps1` script fixes dead sub-page links on the Default Programs page (Issue #5). 
+Links like "Set your default programs" and "Associate a file type or protocol with a program" 
+will function correctly after applying this registry fix.
+```powershell
+.\CPL Restoration 4.0 H1\DefaultPrograms.ps1
+```
+
+### HomeGroup Restoration
+Restores HomeGroup functionality removed since Windows 10 1803. Includes `stobject.dll` 
+version 10.0.14393.7426 from Windows 10 Anniversary Update.
+
+```powershell
+.\CPL Restoration 4.0 H1\Extras\HomeGroup\InstallHomeGroup.ps1
+```
+
+The script replaces stobject.dll, imports registry keys, configures svchost services, and starts 
+HomeGroupListener / HomeGroupProvider services. A reboot is recommended after installation.
 
 ### Windows 7 Logo Branding
 Run `Branding\copy.ps1`
@@ -221,6 +243,11 @@ Explorer7 replaces Windows Explorer and may break UWP/Store apps. Switch to **St
    - Delete `C:\Windows\DWMBlurGlass\`
 
 ## 🎯 Roadmap & Work in Progress
+### ✅ Recently Completed
+- **Unified installer** (`install.ps1`) — interactive, silent, component-selection, restore point, logging
+- **Default Programs CPL fix** — sub-page dead links resolved (Issue #5)
+- **HomeGroup restoration** — registry keys, svchost config, stobject.dll replacement
+
 ### 🔧 Currently in Development
 - Automation and testing improvements
 
@@ -228,7 +255,6 @@ Explorer7 replaces Windows Explorer and may break UWP/Store apps. Switch to **St
 - **Control Panel Restoration 4.0 H1 Automatic Setup** - Work is in progress on a unified PowerShell script to simplify the installation of legacy Control Panel pages. The goal is to allow users to select desired modules and apply them with minimal manual steps. Some .ps1 scripts are functional, while others are still in development, marked as TODO, DUMMY, or IN PROGRESS in the respective file headers. Please read all accompanying README files carefully before use.
 
 ### ⏳ Planned Features
-- Automated Setup Script - A unified PowerShell-based installer that can guide users step-by-step through the installation and configuration process.
 - Localized Language Support - Currently only en-US is supported. Support for additional languages (e.g. pl-PL, de-DE, etc.) is planned.
 - Improved Personalization Options - More pre-configured themes and color schemes resembling Windows 7 Aero styles.
 

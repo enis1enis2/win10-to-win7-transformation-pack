@@ -14,7 +14,7 @@
     Comma-separated list of components to install (silent, no prompts).
     Valid values: SecureUxTheme,Theme,DWMBlurGlass,AuthUX,Windhawk,Resources,
                   Sounds,Branding,Cursors,UAC,CPL,UserTiles,OpenWithEx,
-                  Winaero,Games,StartMenu,HackBGRT
+                  Winaero,Games,StartMenu,HackBGRT,HomeGroup,DefaultPrograms
 .PARAMETER LogPath
     Path to write the installation log (default: $PSScriptRoot\install.log).
 .PARAMETER NoRestorePoint
@@ -378,6 +378,30 @@ function Install-HackBGRT {
     return $true
 }
 
+function Install-HomeGroup {
+    Write-Log "--- Restoring HomeGroup ---"
+    $hgScript = "$scriptDir\CPL Restoration 4.0 H1\Extras\HomeGroup\InstallHomeGroup.ps1"
+    if (Test-Path $hgScript) {
+        & $hgScript
+        Write-Log "HomeGroup restoration complete" "OK"
+        return $true
+    }
+    Write-Log "HomeGroup script not found at $hgScript" "WARN"
+    return $false
+}
+
+function Install-DefaultPrograms {
+    Write-Log "--- Fixing Default Programs CPL dead links ---"
+    $dpScript = "$scriptDir\CPL Restoration 4.0 H1\DefaultPrograms.ps1"
+    if (Test-Path $dpScript) {
+        & $dpScript
+        Write-Log "Default Programs CPL fix applied" "OK"
+        return $true
+    }
+    Write-Log "DefaultPrograms script not found at $dpScript" "WARN"
+    return $false
+}
+
 # --- Component registry ---
 $componentMap = @(
     @{ Name = "SecureUxTheme"; Func = "Install-SecureUxTheme"; Desc = "Enable custom theme support (foundation)" }
@@ -397,6 +421,8 @@ $componentMap = @(
     @{ Name = "Games"; Func = "Install-Games"; Desc = "Windows 7 games (extract + install)" }
     @{ Name = "StartMenu"; Func = "Install-StartMenu"; Desc = "Explorer7 or StartIsBack++" }
     @{ Name = "HackBGRT"; Func = "Install-HackBGRT"; Desc = "Windows 7 boot screen (UEFI, risky)" }
+    @{ Name = "HomeGroup"; Func = "Install-HomeGroup"; Desc = "Restore HomeGroup (requires stobject.dll from Win10 1607)" }
+    @{ Name = "DefaultPrograms"; Func = "Install-DefaultPrograms"; Desc = "Fix Default Programs CPL dead links" }
 )
 
 # --- Interactive menu ---
