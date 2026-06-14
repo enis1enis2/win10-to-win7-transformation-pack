@@ -268,33 +268,46 @@ I've created a PowerShell script that makes the installation of the control pane
 1. Run `CPL Restoration 4.0 H1\_ControlPanelLinks.ps1` — copies control panel link files
 2. Run `CPL Restoration 4.0 H1\_ControlPanelRedirection.ps1` — applies registry redirect
 
-Then select which control panel pages to restore:
+Then select which control panel pages to restore (grouped by status):
 
-| Page | Script | Status |
-|---|---|---|---|
-| Backup and Restore | `BackupAndRestore.ps1` | ✅ Functional |
-| Biometric Devices | `BiometricDevices.ps1` | ✅ Functional |
-| Default Programs | `DefaultPrograms.ps1` | ✅ Fix applied (sub-page dead links) |
-| Display | `Display.ps1` | ✅ Functional |
-| Game Controllers | `GameControllers.ps1` | ✅ Functional |
-| Genuine Center | `GenuineCenter.ps1` | ✅ Functional |
-| HomeGroups | `HomeGroups.ps1` | ✅ Functional |
-| Language | `Language.ps1` | ❌ TODO / DUMMY |
-| Mobility Center | — | ❌ TODO |
-| Network and Sharing Center | — | ❌ TODO |
-| Network Map | — | ❌ TODO |
-| Notification Tray Icons | `NotificationTrayIcons.ps1` | ✅ Functional |
-| Parental Controls/Family Safety | `ParentalControls-FamilySafety.ps1` | ✅ Functional |
-| Performance Information and Tools | `PerformanceInformationAndTools.ps1` | ✅ Functional |
-| Personalization | — | 🚫 Can't be done |
-| Printers | ~~`Printers.ps1`~~ | Redundant (Vista style) |
-| Recovery | `Recovery.ps1` | ✅ Functional |
-| Region and Input | `RegionAndInput.ps1` | ❌ TODO / DUMMY |
+**✅ Functional**
+| Page | Script |
+|---|---|
+| Backup and Restore | `BackupAndRestore.ps1` |
+| Biometric Devices | `BiometricDevices.ps1` |
+| Default Programs | `DefaultPrograms.ps1` |
+| Display | `Display.ps1` |
+| Game Controllers | `GameControllers.ps1` |
+| Genuine Center | `GenuineCenter.ps1` |
+| HomeGroups | `HomeGroups.ps1` |
+| Notification Tray Icons | `NotificationTrayIcons.ps1` |
+| Parental Controls/Family Safety | `ParentalControls-FamilySafety.ps1` |
+| Performance Information and Tools | `PerformanceInformationAndTools.ps1` |
+| Recovery | `Recovery.ps1` |
+| System | `System.ps1` |
+| User Accounts CPL | `UserAccounts.ps1` |
+
+**🔄 Partial**
+| Page | Script | Notes |
+|---|---|---|
+| Printers | ~~`Printers.ps1`~~ | Redundant — Vista style already functional |
 | Security Center and Firewall CPL | `SecurityCenterAndFirewall.ps1` | Vista style page |
-| System | `System.ps1` | ✅ Functional |
-| User Accounts CPL | `UserAccounts.ps1` | ✅ Functional |
-| Windows Cardspace | `WindowsCardspace.ps1` | 🔄 In progress |
-| Windows Update | `WindowsUpdate.ps1` | Decoration only |
+| Windows Cardspace | `WindowsCardspace.ps1` | In progress |
+| Windows Update | `WindowsUpdate.ps1` | Decoration only — tile appears, no actual scanning |
+
+**❌ TODO / Not started**
+| Page | Script |
+|---|---|
+| Language | — |
+| Mobility Center | — |
+| Network and Sharing Center | — |
+| Network Map | — |
+| Region and Input | — |
+
+**🚫 Won't do**
+| Page | Reason |
+|---|---|
+| Personalization | Can't be done in Windows 10 |
 
 ### Default Programs CPL Fix
 The `DefaultPrograms.ps1` script fixes dead sub-page links on the Default Programs page (Issue #5). 
