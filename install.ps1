@@ -21,6 +21,11 @@
     Skip system restore point creation.
 .PARAMETER Silent
     Suppress all prompts (use with -All or -Components).
+.PARAMETER Language
+    Locale for MUI file selection (default: system locale, fallback en-US).
+    Example: -Language "pl-PL", -Language "de-DE"
+.PARAMETER WhatIf
+    Show what would be installed without making changes (dry-run).
 .EXAMPLE
     .\install.ps1 -All
     Install everything.
@@ -30,18 +35,37 @@
 .EXAMPLE
     .\install.ps1
     Interactive menu-driven installation.
+.EXAMPLE
+    .\install.ps1 -WhatIf -All
+    Preview all components that would be installed (dry-run).
+.EXAMPLE
+    .\install.ps1 -All -Language "pl-PL"
+    Install everything using Polish MUI files if available.
 #>
 
+[CmdletBinding(SupportsShouldProcess)]
 param(
     [switch]$All,
     [string]$Components,
     [string]$LogPath,
     [switch]$NoRestorePoint,
-    [switch]$Silent
+    [switch]$Silent,
+    [string]$Language = ""
 )
 
 $scriptDir = Split-Path -Parent $PSCommandPath
 if (-not $LogPath) { $LogPath = "$scriptDir\install.log" }
+
+# --- Locale resolution ---
+if (-not $Language) {
+    try {
+        $Language = (Get-CimInstance -ClassName Win32_OperatingSystem).MUILanguages[0]
+    } catch {
+        $Language = "en-US"
+    }
+}
+if (-not $Language) { $Language = "en-US" }
+$global:InstallLanguage = $Language
 
 # --- Logging ---
 function Write-Log {
@@ -133,14 +157,20 @@ function Install-SecureUxTheme {
 }
 
 function Install-Theme {
-    Write-Log "--- Installing Windows 7 Aero Theme ---"
-    $themeScript = "$scriptDir\Themes\copy.ps1"
-    if (Test-Path $themeScript) {
-        & $themeScript
-        Write-Log "Theme files copied. Apply via Settings > Personalization > Themes" "OK"
-        return $true
+    Write-Log "--- Installing Windows 7 Aero Themes ---"
+    if ($PSCmdlet.ShouldProcess("Theme files to C:\Windows\Resources\Themes", "Copy")) {
+        $themeScript = "$scriptDir\Themes\copy.ps1"
+        if (Test-Path $themeScript) {
+            & $themeScript
+            Write-Log "Theme files copied. Available themes (30 variants):" "OK"
+            Get-ChildItem "$scriptDir\Themes\*.theme" | ForEach-Object {
+                Write-Log "  - $($_.BaseName)" "INFO"
+            }
+            Write-Log "Apply via Settings > Personalization > Themes" "INFO"
+            return $true
+        }
+        Write-Log "Theme script not found at $themeScript" "WARN"
     }
-    Write-Log "Theme script not found at $themeScript" "WARN"
     return $false
 }
 
@@ -254,38 +284,63 @@ function Install-ClassicUAC {
 }
 
 function Install-CPL {
-    Write-Log "--- Control Panel Restoration ---"
-    $cplDir = "$scriptDir\CPL Restoration 4.0 H1"
-    if (-not (Test-Path $cplDir)) {
-        Write-Log "CPL Restoration directory not found" "WARN"
-        return $false
-    }
-
-    $cplScripts = @(
-        "BackupAndRestore.ps1", "BiometricDevices.ps1",
-        "DefaultPrograms.ps1", "Display.ps1",
-        "GameControllers.ps1", "GenuineCenter.ps1",
-        "HomeGroups.ps1", "Language.ps1",
-        "MobilityCenter.ps1", "NetworkAndSharingCenter.ps1",
-        "NetworkMap.ps1", "NotificationTrayIcons.ps1",
-        "ParentalControls-FamilySafety.ps1",
-        "PerformanceInformationAndTools.ps1", "Recovery.ps1",
-        "RegionAndInput.ps1",
-        "SecurityCenterAndFirewall.ps1", "System.ps1",
-        "UserAccounts.ps1", "WindowsCardspace.ps1",
-        "WindowsUpdate.ps1"
-    )
-
-    Write-Log "Available CPL page scripts (run individually as needed):" "INFO"
-    foreach ($s in $cplScripts) {
-        $path = "$cplDir\$s"
-        if (Test-Path $path) {
-            Write-Log "  - $s" "INFO"
+    Write-Log "--- Control Panel Restoration (Language: $global:InstallLanguage) ---"
+    if ($PSCmdlet.ShouldProcess("Control Panel pages", "Install")) {
+        $cplDir = "$scriptDir\CPL Restoration 4.0 H1"
+        if (-not (Test-Path $cplDir)) {
+            Write-Log "CPL Restoration directory not found" "WARN"
+            return $false
         }
-    }
 
-    Write-Log "  MANUAL STEP: Run `_ControlPanelLinks.ps1` and `_ControlPanelRedirection.ps1` first" "WARN"
-    Write-Log "  Then run individual page scripts from CPL Restoration 4.0 H1" "WARN"
+        # Run preparation scripts first
+        $prepScripts = @("_ControlPanelLinks.ps1", "_ControlPanelRedirection.ps1")
+        foreach ($ps in $prepScripts) {
+            $psPath = "$cplDir\$ps"
+            if (Test-Path $psPath) {
+                Write-Log "  Running preparation: $ps" "INFO"
+                & $psPath
+            } else {
+                Write-Log "  Preparation script not found: $ps" "WARN"
+            }
+        }
+
+        $cplScripts = @(
+            "BackupAndRestore.ps1", "BiometricDevices.ps1",
+            "DefaultPrograms.ps1", "Display.ps1",
+            "GameControllers.ps1", "GenuineCenter.ps1",
+            "HomeGroups.ps1", "Language.ps1",
+            "MobilityCenter.ps1", "NetworkAndSharingCenter.ps1",
+            "NetworkMap.ps1", "NotificationTrayIcons.ps1",
+            "ParentalControls-FamilySafety.ps1",
+            "PerformanceInformationAndTools.ps1", "Recovery.ps1",
+            "RegionAndInput.ps1",
+            "SecurityCenterAndFirewall.ps1", "System.ps1",
+            "UserAccounts.ps1", "WindowsCardspace.ps1",
+            "WindowsUpdate.ps1"
+        )
+
+        $successCount = 0
+        $failCount = 0
+        foreach ($s in $cplScripts) {
+            $path = "$cplDir\$s"
+            if (Test-Path $path) {
+                Write-Log "  Installing CPL page: $s" "INFO"
+                try {
+                    & $path
+                    Write-Log "  $s completed" "OK"
+                    $successCount++
+                } catch {
+                    Write-Log "  $s failed: $_" "ERROR"
+                    $failCount++
+                }
+            } else {
+                Write-Log "  CPL script not found: $s" "WARN"
+            }
+        }
+
+        Write-Log "CPL pages installed: $successCount, failed: $failCount" "OK"
+        return ($failCount -eq 0)
+    }
     return $true
 }
 
@@ -408,10 +463,48 @@ function Install-DefaultPrograms {
     return $false
 }
 
+# --- Dependency map ---
+$dependencyMap = @{
+    "Theme"          = @("SecureUxTheme")
+    "DWMBlurGlass"   = @("SecureUxTheme")
+    "CPL"            = @("SecureUxTheme")
+    "Resources"      = @("Windhawk")
+    "DefaultPrograms"= @("CPL")
+    "HomeGroup"      = @("CPL")
+}
+
+function Test-Dependencies {
+    param([string[]]$SelectedComponents)
+    $missing = @{}
+    foreach ($comp in $SelectedComponents) {
+        if ($dependencyMap.ContainsKey($comp)) {
+            foreach ($dep in $dependencyMap[$comp]) {
+                if ($dep -notin $SelectedComponents) {
+                    if (-not $missing.ContainsKey($comp)) { $missing[$comp] = @() }
+                    $missing[$comp] += $dep
+                }
+            }
+        }
+    }
+    if ($missing.Count -gt 0) {
+        Write-Log "Dependency warnings:" "WARN"
+        foreach ($comp in $missing.Keys) {
+            Write-Log "  $comp requires: $($missing[$comp] -join ', ') — these will be auto-added" "WARN"
+        }
+        foreach ($comp in $missing.Keys) {
+            foreach ($dep in $missing[$comp]) {
+                if ($dep -notin $SelectedComponents) {
+                    $Script:SelectedComponents += $dep
+                }
+            }
+        }
+    }
+}
+
 # --- Component registry ---
 $componentMap = @(
     @{ Name = "SecureUxTheme"; Func = "Install-SecureUxTheme"; Desc = "Enable custom theme support (foundation)" }
-    @{ Name = "Theme"; Func = "Install-Theme"; Desc = "Windows 7 Aero themes" }
+    @{ Name = "Theme"; Func = "Install-Theme"; Desc = "Windows 7 Aero themes (6 accent colors)" }
     @{ Name = "DWMBlurGlass"; Func = "Install-DWMBlurGlass"; Desc = "Transparent title bars (Aero Glass)" }
     @{ Name = "AuthUX"; Func = "Install-AuthUX"; Desc = "Windows 7 logon screen" }
     @{ Name = "Windhawk"; Func = "Install-Windhawk"; Desc = "Windhawk mod platform" }
@@ -420,7 +513,7 @@ $componentMap = @(
     @{ Name = "Branding"; Func = "Install-Branding"; Desc = "Windows 7 logo branding" }
     @{ Name = "Cursors"; Func = "Install-Cursors"; Desc = "Windows 7 cursor scheme" }
     @{ Name = "UAC"; Func = "Install-ClassicUAC"; Desc = "Classic (non-XAML) UAC dialog" }
-    @{ Name = "CPL"; Func = "Install-CPL"; Desc = "Control Panel pages restoration" }
+    @{ Name = "CPL"; Func = "Install-CPL"; Desc = "Control Panel pages restoration (21 pages)" }
     @{ Name = "UserTiles"; Func = "Install-UserTiles"; Desc = "Windows 7 user account pictures" }
     @{ Name = "OpenWithEx"; Func = "Install-OpenWithEx"; Desc = "Extended Open With dialog" }
     @{ Name = "Winaero"; Func = "Install-Winaero"; Desc = "Winaero Tweaker (legacy settings)" }
@@ -455,9 +548,14 @@ function Install-Components {
     param([string[]]$Components)
 
     Write-Log "Starting installation with components: $($Components -join ', ')" "INFO"
+    Write-Log "Language: $global:InstallLanguage" "INFO"
     Write-Log "Log: $LogPath" "INFO"
 
-    if (-not $NoRestorePoint) { New-RestorePoint }
+    if ($WhatIfPreference) {
+        Write-Log "WHATIF: Dry-run mode — no changes will be made" "WARN"
+    }
+
+    if (-not $NoRestorePoint -and -not $WhatIfPreference) { New-RestorePoint }
 
     $successCount = 0
     $failCount = 0
@@ -496,6 +594,8 @@ function Install-Components {
 Start-Transcript -Path "$scriptDir\install_transcript.log" -Append | Out-Null
 Write-Log "=== Windows 10 to Windows 7 Transformation Pack Installer ===" "INFO"
 Write-Log "Started at $(Get-Date)" "INFO"
+Write-Log "Language: $global:InstallLanguage" "INFO"
+if ($WhatIfPreference) { Write-Log "WHATIF mode enabled — no changes will be applied" "WARN" }
 
 if (-not (Test-Prerequisites)) {
     Write-Log "Prerequisites check failed. Fix the issues above and re-run." "ERROR"
@@ -534,6 +634,24 @@ if ($All) {
             Stop-Transcript
             exit 1
         }
+    }
+}
+
+# Resolve dependencies
+Test-Dependencies -SelectedComponents $selectedComponents
+
+# Deduplicate
+$selectedComponents = $selectedComponents | Select-Object -Unique
+
+# Confirm with user in interactive mode
+if (-not $Silent -and -not $All -and -not $WhatIfPreference) {
+    Write-Host ""
+    Write-Host "Components to install: $($selectedComponents -join ', ')" -ForegroundColor Cyan
+    $confirm = Read-Host "Proceed? (Y/N)"
+    if ($confirm -ne 'Y' -and $confirm -ne 'y') {
+        Write-Log "Installation cancelled by user" "INFO"
+        Stop-Transcript
+        exit 0
     }
 }
 

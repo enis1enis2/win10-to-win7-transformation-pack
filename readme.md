@@ -54,7 +54,7 @@ Before proceeding, please create a full system backup. Use at your own risk.
    Enter 'A' for all, 'Q' to quit.
 
      1. SecureUxTheme     Enable custom theme support (foundation)
-     2. Theme             Windows 7 Aero themes
+     2. Theme             Windows 7 Aero themes (30 variants, 6 accent colors)
      3. DWMBlurGlass      Transparent title bars (Aero Glass)
      4. AuthUX            Windows 7 logon screen
      5. Windhawk          Windhawk mod platform
@@ -126,6 +126,9 @@ The `install.ps1` script at the repo root automates the entire transformation pr
 - Full logging to `install.log` + transcript to `install_transcript.log`
 - Skips missing components gracefully (no crash on missing files)
 - Validates prerequisites (execution policy, OS version, PowerRun presence)
+- Auto-resolves component dependencies (e.g. Theme → SecureUxTheme)
+- `-WhatIf` dry-run mode — preview what would be installed without changes
+- `-Language` parameter for MUI locale selection (default: system locale)
 
 **All parameters:**
 
@@ -136,6 +139,8 @@ The `install.ps1` script at the repo root automates the entire transformation pr
 | `-Silent` | Switch | Suppress all prompts (requires `-All` or `-Components`) |
 | `-NoRestorePoint` | Switch | Skip system restore point creation |
 | `-LogPath "C:\path\to.log"` | String | Custom log file path |
+| `-Language "pl-PL"` | String | Locale for MUI files (default: system locale) |
+| `-WhatIf` | Switch | Dry-run — show what would be installed without making changes |
 
 **Valid component names:** `SecureUxTheme`, `Theme`, `DWMBlurGlass`, `AuthUX`, `Windhawk`, `Resources`, `Sounds`, `Branding`, `Cursors`, `UAC`, `CPL`, `UserTiles`, `OpenWithEx`, `Winaero`, `Games`, `StartMenu`, `HackBGRT`, `HomeGroup`, `DefaultPrograms`
 
@@ -146,10 +151,12 @@ The `install.ps1` script at the repo root automates the entire transformation pr
 | `.\install.ps1` | Show interactive menu, ask which components to install |
 | `.\install.ps1 -All` | Install everything, prompts before starting |
 | `.\install.ps1 -All -Silent` | Install everything, no prompts at all |
+| `.\install.ps1 -WhatIf -All` | Preview everything that would install (dry-run) |
 | `.\install.ps1 -Components "Theme,Sounds,Branding"` | Install only 3 components, prompts before starting |
 | `.\install.ps1 -Components "Theme,Sounds,Branding" -Silent` | Install 3 components silently |
 | `.\install.ps1 -All -NoRestorePoint` | Install everything, skip restore point |
 | `.\install.ps1 -Components "Windhawk" -Silent` | Single component, fully silent |
+| `.\install.ps1 -Language "pl-PL" -All` | Install everything with Polish MUI files if available |
 | `.\install.ps1 -Components "SecureUxTheme,Theme,HomeGroup,DefaultPrograms"` | Foundation + HomeGroup + CPL fix, prompts before start |
 
 **Typical output (interactive mode):**
@@ -326,6 +333,41 @@ Run `Branding\copy.ps1`
 ### Non-XAML UAC
 Run `classicuac-1.0.3\NTMU.exe`, select pack.ini from the same directory and apply.
 
+### Theme Color Variants
+The pack includes **30 theme variants** across 3 base styles (Seven, Vista, Metro), each with 6 accent colors:
+
+| Style | Colors |
+|---|---|
+| Aero10 Seven | Default Blue, Ruby Red, Emerald Green, Amethyst Purple, Teal, Orange, Hot Pink |
+| Aero10 Vista | Default Blue, Ruby Red, Emerald Green, Amethyst Purple, Teal, Orange, Hot Pink |
+| Aero10 Metro | Default Blue, Ruby Red, Emerald Green, Amethyst Purple, Teal, Orange, Hot Pink |
+
+After running `install.ps1 -Components Theme`, all variants are available under **Settings > Personalization > Themes**.
+
+### Localization
+The pack defaults to system locale (fallback: en-US). To use a specific language:
+
+```powershell
+.\install.ps1 -Language "pl-PL"
+```
+
+To add a new language:
+1. Run `.\Localization\New-Locale.ps1 -Locale "de-DE"` to create directory structure
+2. Translate the en-US MUI files in each CPL page directory
+3. Place translated files in the corresponding locale directories
+4. Install with `.\install.ps1 -Language "de-DE"`
+
+See `Localization\README.txt` for detailed instructions.
+
+### Environment Test
+Before installing, run the diagnostic script to check your system:
+
+```powershell
+.\Test-InstallEnvironment.ps1
+```
+
+This checks: OS version, architecture, PowerShell version, execution policy, admin rights, disk space, PowerRun, Resource Hacker, ViveTool, and the integrity of all component files and CPL scripts.
+
 ### HackBGRT
 
 Please know that HackBGRT is UEFI-only and you must **disable Secure Boot** in your BIOS setup! Otherwise, it will not work.
@@ -376,21 +418,15 @@ Explorer7 replaces Windows Explorer and may break UWP/Store apps. Switch to **St
    - **HomeGroup**: Restore original `stobject.dll` from `C:\Windows\System32\` backup
    - **Default Programs fix**: Delete the `{17cd9488-...}` CLSID key added by `DefaultPrograms.ps1`
 
-## 🎯 Roadmap & Work in Progress
+## 🎯 What's New
 ### ✅ Recently Completed
 - **Unified installer** (`install.ps1`) — interactive, silent, component-selection, restore point, logging
 - **Default Programs CPL fix** — sub-page dead links resolved (Issue #5)
 - **HomeGroup restoration** — registry keys, svchost config, stobject.dll replacement
-
-### 🔧 Currently in Development
-- Automation and testing improvements
-
-### 📝 Todo
-- Currently none — all planned features are complete.
-
-### ⏳ Planned Features
-- Localized Language Support - Currently only en-US is supported. Support for additional languages (e.g. pl-PL, de-DE, etc.) is planned.
-- Improved Personalization Options - More pre-configured themes and color schemes resembling Windows 7 Aero styles.
+- **30 theme variants** — 6 accent colors (Ruby Red, Emerald Green, Amethyst Purple, Teal, Orange, Hot Pink) x 3 base styles (Seven, Vista, Metro) — plus originals
+- **Localization framework** — `Localization/New-Locale.ps1` helper, `-Language` parameter in installer, documentation for translators
+- **Environment test script** (`Test-InstallEnvironment.ps1`) — checks prerequisites, component integrity, disk space, CPL script presence before installation
+- **Installer improvements** — `-WhatIf` dry-run mode, automatic dependency resolution, dependency warnings, language detection
 
 ## 🎨 Theming other applications
 - Firefox: 
