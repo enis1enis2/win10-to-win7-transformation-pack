@@ -271,43 +271,39 @@ I've created a PowerShell script that makes the installation of the control pane
 Then select which control panel pages to restore (grouped by status):
 
 **✅ Functional**
-| Page | Script |
-|---|---|
-| Backup and Restore | `BackupAndRestore.ps1` |
-| Biometric Devices | `BiometricDevices.ps1` |
-| Default Programs | `DefaultPrograms.ps1` |
-| Display | `Display.ps1` |
-| Game Controllers | `GameControllers.ps1` |
-| Genuine Center | `GenuineCenter.ps1` |
-| HomeGroups | `HomeGroups.ps1` |
-| Notification Tray Icons | `NotificationTrayIcons.ps1` |
-| Parental Controls/Family Safety | `ParentalControls-FamilySafety.ps1` |
-| Performance Information and Tools | `PerformanceInformationAndTools.ps1` |
-| Recovery | `Recovery.ps1` |
-| System | `System.ps1` |
-| User Accounts CPL | `UserAccounts.ps1` |
+| Page | Script | Notes |
+|---|---|---|
+| Backup and Restore | `BackupAndRestore.ps1` | |
+| Biometric Devices | `BiometricDevices.ps1` | |
+| Default Programs | `DefaultPrograms.ps1` | Sub-page dead links fixed |
+| Display | `Display.ps1` | |
+| Game Controllers | `GameControllers.ps1` | |
+| Genuine Center | `GenuineCenter.ps1` | |
+| HomeGroups | `HomeGroups.ps1` | |
+| Language | `Language.ps1` | Decoration on 1809+; use Windhawk for IME |
+| Mobility Center | `MobilityCenter.ps1` | |
+| Notification Tray Icons | `NotificationTrayIcons.ps1` | |
+| Parental Controls/Family Safety | `ParentalControls-FamilySafety.ps1` | |
+| Performance Information and Tools | `PerformanceInformationAndTools.ps1` | |
+| Recovery | `Recovery.ps1` | |
+| Region and Input | `RegionAndInput.ps1` | |
+| System | `System.ps1` | |
+| User Accounts CPL | `UserAccounts.ps1` | |
+| Windows Cardspace | `WindowsCardspace.ps1` | Requires .NET 3.5 enabled |
 
 **🔄 Partial**
 | Page | Script | Notes |
 |---|---|---|
-| Printers | ~~`Printers.ps1`~~ | Redundant — Vista style already functional |
+| Network and Sharing Center | `NetworkAndSharingCenter.ps1` | Needs Resource Hacker to patch netcenter.dll + external PNIDUI.dll for flyout |
+| Network Map | `NetworkMap.ps1` | Needs LLTDIO driver enabled via gpedit.msc |
 | Security Center and Firewall CPL | `SecurityCenterAndFirewall.ps1` | Vista style page |
-| Windows Cardspace | `WindowsCardspace.ps1` | In progress |
 | Windows Update | `WindowsUpdate.ps1` | Decoration only — tile appears, no actual scanning |
-
-**❌ TODO / Not started**
-| Page | Script |
-|---|---|
-| Language | — |
-| Mobility Center | — |
-| Network and Sharing Center | — |
-| Network Map | — |
-| Region and Input | — |
 
 **🚫 Won't do**
 | Page | Reason |
 |---|---|
 | Personalization | Can't be done in Windows 10 |
+| Printers | Already functional via built-in Vista style |
 
 ### Default Programs CPL Fix
 The `DefaultPrograms.ps1` script fixes dead sub-page links on the Default Programs page (Issue #5). 

@@ -262,12 +262,18 @@ function Install-CPL {
     }
 
     $cplScripts = @(
-        "BackupAndRestore.ps1", "BiometricDevices.ps1", "Display.ps1",
-        "GameControllers.ps1", "GenuineCenter.ps1", "HomeGroups.ps1",
-        "NotificationTrayIcons.ps1", "ParentalControls-FamilySafety.ps1",
+        "BackupAndRestore.ps1", "BiometricDevices.ps1",
+        "DefaultPrograms.ps1", "Display.ps1",
+        "GameControllers.ps1", "GenuineCenter.ps1",
+        "HomeGroups.ps1", "Language.ps1",
+        "MobilityCenter.ps1", "NetworkAndSharingCenter.ps1",
+        "NetworkMap.ps1", "NotificationTrayIcons.ps1",
+        "ParentalControls-FamilySafety.ps1",
         "PerformanceInformationAndTools.ps1", "Recovery.ps1",
+        "RegionAndInput.ps1",
         "SecurityCenterAndFirewall.ps1", "System.ps1",
-        "UserAccounts.ps1", "WindowsUpdate.ps1"
+        "UserAccounts.ps1", "WindowsCardspace.ps1",
+        "WindowsUpdate.ps1"
     )
 
     Write-Log "Available CPL page scripts (run individually as needed):" "INFO"
