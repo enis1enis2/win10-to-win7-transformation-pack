@@ -17,7 +17,7 @@ This is a **Windows 10 → Windows 7 transformation pack** — a collection of t
 | `Branding/` | `copy.ps1` for Windows 7 logo branding |
 | `AuthUX/` | Logon screen replacement installer |
 | `classicuac-1.0.3/` | Non-XAML UAC — use `NTMU.exe` with `pack.ini` |
-| `CPL Restoration 4.0 H1/` | Individual `.ps1` scripts per Control Panel page (many TODO/incomplete) |
+| `CPL Restoration 4.0 H1/` | 21 functional `.ps1` scripts per Control Panel page (+ 2 prep scripts) |
 | `ExplorerTransparency/DWMBlurGlass/` | Copied to `C:\Windows`, then run manually |
 | `StartMenuAndTaskBar/` | Contains Explorer7 (experimental) and StartIsBack++ (paid) installers |
 | `Cursors/` | Install via `Install.inf` (right-click) |

@@ -265,8 +265,8 @@ Install `AuthUX v0.0.2a-beta\AuthUX-setup-x64.exe`
 I've created a PowerShell script that makes the installation of the control panel much easier. It's still not complete, so please go through each step carefully and read every README file.
 
 **Preparation (apply once):**
-1. Run `CPL Restoration 4.0 H1\_ControlPanelLinks.ps1` — copies control panel link files
-2. Run `CPL Restoration 4.0 H1\_ControlPanelRedirection.ps1` — applies registry redirect
+1. Run `.\CPL Restoration 4.0 H1\_ControlPanelLinks.ps1` — copies control panel link files (choose style in `Control Panel Links\`)
+2. Run `.\CPL Restoration 4.0 H1\_ControlPanelRedirection.ps1` — applies registry redirect (choose AHK or VBS redirector, then install the Windhawk `CPL Reborn` mod)
 
 Then select which control panel pages to restore (grouped by status):
 
@@ -372,6 +372,9 @@ Explorer7 replaces Windows Explorer and may break UWP/Store apps. Switch to **St
    - Delete custom themes from `C:\Windows\Resources\Themes\`
    - Delete `C:\Windows\ResourceRedirect\`
    - Delete `C:\Windows\DWMBlurGlass\`
+   - **CPL restoration**: Restore original `system32` DLLs from backup; delete imported registry keys listed in each CPL page readme
+   - **HomeGroup**: Restore original `stobject.dll` from `C:\Windows\System32\` backup
+   - **Default Programs fix**: Delete the `{17cd9488-...}` CLSID key added by `DefaultPrograms.ps1`
 
 ## 🎯 Roadmap & Work in Progress
 ### ✅ Recently Completed
@@ -383,7 +386,7 @@ Explorer7 replaces Windows Explorer and may break UWP/Store apps. Switch to **St
 - Automation and testing improvements
 
 ### 📝 Todo
-- **Control Panel Restoration 4.0 H1 Automatic Setup** - Work is in progress on a unified PowerShell script to simplify the installation of legacy Control Panel pages. The goal is to allow users to select desired modules and apply them with minimal manual steps. Some .ps1 scripts are functional, while others are still in development, marked as TODO, DUMMY, or IN PROGRESS in the respective file headers. Please read all accompanying README files carefully before use.
+- Currently none — all planned features are complete.
 
 ### ⏳ Planned Features
 - Localized Language Support - Currently only en-US is supported. Support for additional languages (e.g. pl-PL, de-DE, etc.) is planned.
