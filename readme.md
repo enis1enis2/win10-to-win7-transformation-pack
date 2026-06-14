@@ -22,18 +22,80 @@ Before proceeding, please create a full system backup. Use at your own risk.
 > **Note:** A new unified installer (`install.ps1`) is available. See below.
 
 ### Quick start (recommended)
-Run the interactive installer as Administrator:
-```powershell
-.\install.ps1
-```
-Or install everything at once:
+
+**Step-by-step:**
+
+1. **Extract** the pack to a folder like `C:\Win7-Pack` (short path avoids length issues)
+
+2. **Open PowerShell as Administrator** — right-click Start → Windows PowerShell (Admin) or Terminal (Admin)
+
+3. **Navigate to the pack folder**:
+   ```powershell
+   cd C:\Win7-Pack
+   ```
+
+4. **Set execution policy** (one-time):
+   ```powershell
+   Set-ExecutionPolicy RemoteSigned -Scope Process
+   ```
+
+5. **Run the interactive installer** — a numbered menu shows all components:
+   ```powershell
+   .\install.ps1
+   ```
+   ```
+   ========================================
+     Windows 10 → Windows 7 Transformation
+     Pack Installer
+   ========================================
+
+   Select components to install (by number).
+   Separate multiple numbers with commas (e.g. 1,3,5).
+   Enter 'A' for all, 'Q' to quit.
+
+     1. SecureUxTheme     Enable custom theme support (foundation)
+     2. Theme             Windows 7 Aero themes
+     3. DWMBlurGlass      Transparent title bars (Aero Glass)
+     4. AuthUX            Windows 7 logon screen
+     5. Windhawk          Windhawk mod platform
+     6. Resources         Resource Redirect files + mod list
+     7. Sounds            Windows 7 sound scheme
+     8. Branding          Windows 7 logo branding
+     9. Cursors           Windows 7 cursor scheme
+     10. UAC              Classic (non-XAML) UAC dialog
+     11. CPL              Control Panel pages restoration
+     12. UserTiles        Windows 7 user account pictures
+     13. OpenWithEx       Extended Open With dialog
+     14. Winaero          Winaero Tweaker (legacy settings)
+     15. Games            Windows 7 games (extract + install)
+     16. StartMenu        Explorer7 or StartIsBack++
+     17. HackBGRT         Windows 7 boot screen (UEFI, risky)
+     18. HomeGroup        Restore HomeGroup
+     19. DefaultPrograms  Fix Default Programs CPL dead links
+   ```
+   Enter `A` to install everything, or a comma-separated list like `1,2,4,7,8,9`.
+
+**One-line silent install (everything):**
 ```powershell
 .\install.ps1 -All
 ```
-Or select specific components:
+
+**Install specific components silently:**
 ```powershell
-.\install.ps1 -Components "SecureUxTheme,Theme,Sounds,Branding"
+.\install.ps1 -Components "SecureUxTheme,Theme,Sounds,Branding" -Silent
 ```
+
+**Install core + CPL pages without prompts:**
+```powershell
+.\install.ps1 -Components "SecureUxTheme,Theme,DWMBlurGlass,Windhawk,Resources,Sounds,Branding,Cursors,UserTiles,OpenWithEx,CPL" -Silent
+```
+
+**What happens during install:**
+- A system restore point is created (unless `-NoRestorePoint`)
+- Each component is installed in order
+- Setup logs to `install.log` in the pack folder
+- Components requiring manual post-steps are highlighted in yellow
+- After completion, review the log for any warnings
 
 ### Manual installation
 Proceed step-by-step if you prefer full control.
@@ -55,30 +117,94 @@ Proceed step-by-step if you prefer full control.
 - [Troubleshooting](#troubleshooting)
 
 ### Unified installer
-The `install.ps1` script at the repo root provides an interactive, menu-driven installer with optional silent mode.
+The `install.ps1` script at the repo root automates the entire transformation process.
 
 **Features:**
-- Creates a system restore point before changes
+- Creates a system restore point before changes (skip with `-NoRestorePoint`)
 - Component selection via interactive menu or `-Components` parameter
 - Silent mode (`-All` or `-Components "A,B"` with `-Silent`)
-- Full logging to `install.log`
-- Handles all components with correct ordering
-- Skips missing components gracefully
+- Full logging to `install.log` + transcript to `install_transcript.log`
+- Skips missing components gracefully (no crash on missing files)
+- Validates prerequisites (execution policy, OS version, PowerRun presence)
 
-**Usage examples:**
-| Command | Description |
+**All parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `-All` | Switch | Install every component without prompting |
+| `-Components "A,B"` | String | Comma-separated component names (case-sensitive) |
+| `-Silent` | Switch | Suppress all prompts (requires `-All` or `-Components`) |
+| `-NoRestorePoint` | Switch | Skip system restore point creation |
+| `-LogPath "C:\path\to.log"` | String | Custom log file path |
+
+**Valid component names:** `SecureUxTheme`, `Theme`, `DWMBlurGlass`, `AuthUX`, `Windhawk`, `Resources`, `Sounds`, `Branding`, `Cursors`, `UAC`, `CPL`, `UserTiles`, `OpenWithEx`, `Winaero`, `Games`, `StartMenu`, `HackBGRT`, `HomeGroup`, `DefaultPrograms`
+
+**Example workflows:**
+
+| Command | What it does |
 |---|---|
-| `.\install.ps1` | Interactive menu |
-| `.\install.ps1 -All` | Install everything |
-| `.\install.ps1 -Components "Theme,Sounds,Branding"` | Selected components only |
-| `.\install.ps1 -All -NoRestorePoint` | No system restore point |
-| `.\install.ps1 -Components "Windhawk" -Silent` | Single component, no prompts |
+| `.\install.ps1` | Show interactive menu, ask which components to install |
+| `.\install.ps1 -All` | Install everything, prompts before starting |
+| `.\install.ps1 -All -Silent` | Install everything, no prompts at all |
+| `.\install.ps1 -Components "Theme,Sounds,Branding"` | Install only 3 components, prompts before starting |
+| `.\install.ps1 -Components "Theme,Sounds,Branding" -Silent` | Install 3 components silently |
+| `.\install.ps1 -All -NoRestorePoint` | Install everything, skip restore point |
+| `.\install.ps1 -Components "Windhawk" -Silent` | Single component, fully silent |
+| `.\install.ps1 -Components "SecureUxTheme,Theme,HomeGroup,DefaultPrograms"` | Foundation + HomeGroup + CPL fix, prompts before start |
+
+**Typical output (interactive mode):**
+
+After launching `.\install.ps1` and choosing `1,2,4,7,8,9`, you will see:
+
+```
+=== Windows 10 to Windows 7 Transformation Pack Installer ===
+Starting installation with components: SecureUxTheme, Theme, AuthUX, Sounds, Branding, Cursors
+Log: C:\Win7-Pack\install.log
+System restore point created
+
+--- Installing SecureUxTheme ---
+SecureUxTheme installed (reboot may be required)
+
+--- Installing Windows 7 Aero Theme ---
+Theme files copied. Apply via Settings > Personalization > Themes
+
+--- Installing AuthUX (logon screen) ---
+AuthUX installed
+
+--- Applying Windows 7 Sounds ---
+Windows 7 sound scheme applied
+
+--- Applying Windows 7 Branding ---
+Windows 7 branding applied
+
+--- Installing Windows 7 Cursors ---
+  MANUAL STEP: Right-click Cursors\Install.inf and select 'Install'
+
+========================================
+Installation complete.
+Components installed: 6
+Components with errors: 0
+Log saved to: C:\Win7-Pack\install.log
+========================================
+
+IMPORTANT: Some components require manual steps (see log).
+A reboot may be needed for some changes to take effect.
+```
 
 ### Windhawk
-1. Use `Windhawk\installWindhawk.ps1` for silent install.
-2. Run `Windhawk\copyResources.ps1` 
-3. After installing Windhawk, open it from the system tray.
-4. Then install mods listed in `Windhawk\mods.txt`
+Install the mod platform, resource redirect files, and required mods:
+
+```powershell
+# Step 1: Install Windhawk silently
+.\Windhawk\installWindhawk.ps1
+
+# Step 2: Copy resource replacement files to C:\Windows\ResourceRedirect\
+.\Windhawk\copyResources.ps1
+```
+- Then open Windhawk from the system tray
+- Install the **Resource Redirect** mod
+- In its settings, set the theme path to `C:\Windows\ResourceRedirect\theme.ini`
+- Install additional mods listed in `Windhawk\mods.txt`
 
 ### Theming
 1. Enable unofficial theme support
