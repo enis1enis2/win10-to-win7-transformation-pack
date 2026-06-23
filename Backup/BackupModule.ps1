@@ -36,8 +36,13 @@ function Initialize-Backup {
         [switch]$Force
     )
 
-    if ($script:BackupSessionPath -and -not $Force) {
-        return $script:BackupSessionPath
+    # Check for active session in script or global scope
+    if (-not $Force) {
+        if ($script:BackupSessionPath) { return $script:BackupSessionPath }
+        if ($global:ActiveBackupSessionPath -and (Test-Path $global:ActiveBackupSessionPath)) {
+            $script:BackupSessionPath = $global:ActiveBackupSessionPath
+            return $script:BackupSessionPath
+        }
     }
 
     if (-not $BackupRoot) {
@@ -49,6 +54,7 @@ function Initialize-Backup {
     $script:BackupRoot = $BackupRoot
     $script:BackupSession = $timestamp
     $script:BackupSessionPath = Join-Path $BackupRoot $timestamp
+    $global:ActiveBackupSessionPath = $script:BackupSessionPath
 
     New-Item -Path $script:BackupSessionPath -ItemType Directory -Force | Out-Null
 
@@ -237,100 +243,110 @@ function Backup-BeforeCopy {
 
 <#
 .SYNOPSIS
-    Discovers and backs up all system files that this pack modifies.
-    Call this before any component installation for a full pre-snapshot.
+    Discovers and backs up system files that this pack modifies.
+.PARAMETER PathsToBackup
+    Specific paths to back up. If empty, uses the default list.
 .PARAMETER PowerRunPath
     Path to PowerRun_x64.exe.
 .EXAMPLE
     Backup-AllSystemFiles
+    Backup-AllSystemFiles -PathsToBackup "C:\Windows\System32\target.dll"
 #>
 function Backup-AllSystemFiles {
-    param([string]$PowerRunPath = "")
+    param(
+        [string[]]$PathsToBackup = @(),
+        [string]$PowerRunPath = ""
+    )
 
     if (-not $PowerRunPath) { $PowerRunPath = Find-PowerRun }
 
-    Write-Host "Creating full system file backup (this may take a moment)..." -ForegroundColor Cyan
+    Write-Host "Creating system file backup..." -ForegroundColor Cyan
 
-    # All destination paths the pack touches (collected from all scripts)
-    $paths = @(
-        # CPL System32 DLLs
-        "$env:SystemRoot\System32\sdcpl.dll",
-        "$env:SystemRoot\System32\en-US\sdcpl.dll.mui",
-        "$env:SystemRoot\System32\bio.applet",
-        "$env:SystemRoot\System32\biocpl.dll",
-        "$env:SystemRoot\System32\en-US\biocpl.dll.mui",
-        "$env:SystemRoot\System32\display.dll",
-        "$env:SystemRoot\System32\en-US\Display.dll.mui",
-        "$env:SystemRoot\System32\GenuineCenter.dll",
-        "$env:SystemRoot\System32\en-US\genuinecenter.dll.mui",
-        "$env:SystemRoot\System32\UserLanguagesCpl.dll",
-        "$env:SystemRoot\System32\en-US\UserLanguagesCpl.dll.mui",
-        "$env:SystemRoot\System32\batmete7.dll",
-        "$env:SystemRoot\System32\mblctr.exe",
-        "$env:SystemRoot\System32\en-US\mblctr.exe.mui",
-        "$env:SystemRoot\System32\en-US\batmete7.dll.mui",
-        "$env:SystemRoot\System32\netcenter.dll",
-        "$env:SystemRoot\System32\en-US\netcenter.dll.mui",
-        "$env:SystemRoot\System32\networkmap.dll",
-        "$env:SystemRoot\System32\en-US\NetworkMap.dll.mui",
-        "$env:SystemRoot\System32\dui77.dll",
-        "$env:SystemRoot\System32\en-US\dui77.dll.mui",
-        "$env:SystemRoot\System32\netname.ps1",
-        "$env:SystemRoot\System32\netname.vbs",
-        "$env:SystemRoot\System32\nettype.ps1",
-        "$env:SystemRoot\System32\nettype.vbs",
-        "$env:SystemRoot\System32\taskbarcpl.dll",
-        "$env:SystemRoot\System32\en-US\taskbarcpl.dll.mui",
-        "$env:SystemRoot\System32\wpccpl.dll",
-        "$env:SystemRoot\System32\en-US\wpccpl.dll.mui",
-        "$env:SystemRoot\System32\PerfCenterCPL.dll",
-        "$env:SystemRoot\System32\en-US\PerfCenterCPL.dll.mui",
-        "$env:SystemRoot\System32\WinSATAPI.dll",
-        "$env:SystemRoot\System32\Recovery.dll",
-        "$env:SystemRoot\System32\en-US\recovery.dll.mui",
-        "$env:SystemRoot\System32\intl.cpl",
-        "$env:SystemRoot\System32\en-US\intl.cpl.mui",
-        "$env:SystemRoot\System32\input.dll",
-        "$env:SystemRoot\System32\en-US\input.dll.mui",
-        "$env:SystemRoot\System32\Firewall.cpl",
-        "$env:SystemRoot\System32\en-US\Firewall.cpl.mui",
-        "$env:SystemRoot\System32\FirewallControlPanel.exe",
-        "$env:SystemRoot\System32\en-US\FirewallControlPanel.exe.mui",
-        "$env:SystemRoot\System32\FirewallSettings.exe",
-        "$env:SystemRoot\System32\en-US\FirewallSettings.exe.mui",
-        "$env:SystemRoot\System32\FirevistAPI.dll",
-        "$env:SystemRoot\System32\en-US\FireVistAPI.dll.mui",
-        "$env:SystemRoot\System32\vscapi.dll",
-        "$env:SystemRoot\System32\vscui.cpl",
-        "$env:SystemRoot\System32\en-US\vscui.cpl.mui",
-        "$env:SystemRoot\System32\systemcpl.dll",
-        "$env:SystemRoot\System32\en-US\systemcpl.dll.mui",
-        "$env:SystemRoot\System32\en-US\usercpl.dll.mui",
-        "$env:SystemRoot\System32\shacct.dll",
-        "$env:SystemRoot\System32\stobject.dll",
-        "$env:SystemRoot\System32\en-US\stobject.dll.mui",
-        "$env:SystemRoot\System32\wucltux.dll",
-        "$env:SystemRoot\System32\en-US\wucltux.dll.mui",
-        # SystemResources (patched by Resource Hacker)
-        "$env:SystemRoot\SystemResources\ActionCenterCPL.dll.mun",
-        "$env:SystemRoot\SystemResources\usercpl.dll.mun",
-        # Media (sounds)
-        "$env:SystemRoot\Media\Windows 7 Sounds",
-        # Branding
-        "$env:SystemRoot\Branding",
-        # Themes
-        "$env:SystemRoot\Resources\Themes\Aero10",
-        # ResourceRedirect
-        "$env:SystemRoot\ResourceRedirect",
-        # DWMBlurGlass
-        "$env:SystemRoot\DWMBlurGlass"
-    )
+    $paths = if ($PathsToBackup.Count -gt 0) {
+        $PathsToBackup
+    } else {
+        # Default comprehensive list
+        @(
+            # CPL System32 DLLs
+            "$env:SystemRoot\System32\sdcpl.dll",
+            "$env:SystemRoot\System32\en-US\sdcpl.dll.mui",
+            "$env:SystemRoot\System32\bio.applet",
+            "$env:SystemRoot\System32\biocpl.dll",
+            "$env:SystemRoot\System32\en-US\biocpl.dll.mui",
+            "$env:SystemRoot\System32\display.dll",
+            "$env:SystemRoot\System32\en-US\Display.dll.mui",
+            "$env:SystemRoot\System32\GenuineCenter.dll",
+            "$env:SystemRoot\System32\en-US\genuinecenter.dll.mui",
+            "$env:SystemRoot\System32\UserLanguagesCpl.dll",
+            "$env:SystemRoot\System32\en-US\UserLanguagesCpl.dll.mui",
+            "$env:SystemRoot\System32\batmete7.dll",
+            "$env:SystemRoot\System32\mblctr.exe",
+            "$env:SystemRoot\System32\en-US\mblctr.exe.mui",
+            "$env:SystemRoot\System32\en-US\batmete7.dll.mui",
+            "$env:SystemRoot\System32\netcenter.dll",
+            "$env:SystemRoot\System32\en-US\netcenter.dll.mui",
+            "$env:SystemRoot\System32\networkmap.dll",
+            "$env:SystemRoot\System32\en-US\NetworkMap.dll.mui",
+            "$env:SystemRoot\System32\dui77.dll",
+            "$env:SystemRoot\System32\en-US\dui77.dll.mui",
+            "$env:SystemRoot\System32\netname.ps1",
+            "$env:SystemRoot\System32\netname.vbs",
+            "$env:SystemRoot\System32\nettype.ps1",
+            "$env:SystemRoot\System32\nettype.vbs",
+            "$env:SystemRoot\System32\taskbarcpl.dll",
+            "$env:SystemRoot\System32\en-US\taskbarcpl.dll.mui",
+            "$env:SystemRoot\System32\wpccpl.dll",
+            "$env:SystemRoot\System32\en-US\wpccpl.dll.mui",
+            "$env:SystemRoot\System32\PerfCenterCPL.dll",
+            "$env:SystemRoot\System32\en-US\PerfCenterCPL.dll.mui",
+            "$env:SystemRoot\System32\WinSATAPI.dll",
+            "$env:SystemRoot\System32\Recovery.dll",
+            "$env:SystemRoot\System32\en-US\recovery.dll.mui",
+            "$env:SystemRoot\System32\intl.cpl",
+            "$env:SystemRoot\System32\en-US\intl.cpl.mui",
+            "$env:SystemRoot\System32\input.dll",
+            "$env:SystemRoot\System32\en-US\input.dll.mui",
+            "$env:SystemRoot\System32\Firewall.cpl",
+            "$env:SystemRoot\System32\en-US\Firewall.cpl.mui",
+            "$env:SystemRoot\System32\FirewallControlPanel.exe",
+            "$env:SystemRoot\System32\en-US\FirewallControlPanel.exe.mui",
+            "$env:SystemRoot\System32\FirewallSettings.exe",
+            "$env:SystemRoot\System32\en-US\FirewallSettings.exe.mui",
+            "$env:SystemRoot\System32\FirevistAPI.dll",
+            "$env:SystemRoot\System32\en-US\FireVistAPI.dll.mui",
+            "$env:SystemRoot\System32\vscapi.dll",
+            "$env:SystemRoot\System32\vscui.cpl",
+            "$env:SystemRoot\System32\en-US\vscui.cpl.mui",
+            "$env:SystemRoot\System32\systemcpl.dll",
+            "$env:SystemRoot\System32\en-US\systemcpl.dll.mui",
+            "$env:SystemRoot\System32\en-US\usercpl.dll.mui",
+            "$env:SystemRoot\System32\shacct.dll",
+            "$env:SystemRoot\System32\stobject.dll",
+            "$env:SystemRoot\System32\en-US\stobject.dll.mui",
+            "$env:SystemRoot\System32\wucltux.dll",
+            "$env:SystemRoot\System32\en-US\wucltux.dll.mui",
+            # SystemResources (patched by Resource Hacker)
+            "$env:SystemRoot\SystemResources\ActionCenterCPL.dll.mun",
+            "$env:SystemRoot\SystemResources\usercpl.dll.mun",
+            # Media (sounds)
+            "$env:SystemRoot\Media\Windows 7 Sounds",
+            # Branding
+            "$env:SystemRoot\Branding",
+            # Themes
+            "$env:SystemRoot\Resources\Themes\Aero10",
+            # ResourceRedirect
+            "$env:SystemRoot\ResourceRedirect",
+            # DWMBlurGlass
+            "$env:SystemRoot\DWMBlurGlass"
+        )
+    }
 
     $count = 0
     foreach ($p in $paths) {
         if (Test-Path $p) {
-            Backup-File -Path $p -UsePowerRun:$true -PowerRunPath $PowerRunPath | Out-Null
-            $count++
+            if (Backup-File -Path $p -UsePowerRun:$true -PowerRunPath $PowerRunPath) {
+                $count++
+            }
         }
     }
 
