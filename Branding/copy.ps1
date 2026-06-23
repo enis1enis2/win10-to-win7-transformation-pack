@@ -12,7 +12,7 @@ $brandingSource = "$scriptDir\Branding"
 # === Backup existing files before modification ===
 $__sDir = Split-Path -Parent $PSCommandPath
 $__bkMod = Join-Path $__sDir "..\Backup\BackupModule.ps1"
-if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $__sDir "") | Out-Null }
+if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $__sDir "..\Backup") | Out-Null }
 $__bkSrc = Join-Path $__sDir "Branding"
 if (Test-Path $__bkSrc) { Backup-BeforeCopy -Source $__bkSrc -Destination "C:\Windows\Branding" -Recurse -UsePowerRun }
 $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$brandingSource' -Destination 'C:\Windows\' -Recurse -Force"

@@ -85,12 +85,13 @@ function Test-Prerequisites {
 
     $os = Get-CimInstance -ClassName Win32_OperatingSystem
     if ($os.Caption -notmatch "Windows 10" -or $os.Version -notlike "10.0.19045*") {
-        Write-Log "This pack targets Windows 10 22H2 (10.0.19045). Detected: $($os.Caption) $($os.Version)" "WARN"
+        Write-Log "This pack targets Windows 10 22H2 (10.0.19045). Detected: $($os.Caption) $($os.Version)" "ERROR"
+        $ok = $false
     }
 
     $policy = Get-ExecutionPolicy
     if ($policy -eq "Restricted") {
-        Write-Log "PowerShell execution policy is Restricted. Run: Set-ExecutionPolicy Unrestricted" "ERROR"
+        Write-Log "PowerShell execution policy is Restricted. Run: Set-ExecutionPolicy RemoteSigned" "ERROR"
         $ok = $false
     }
 
@@ -195,7 +196,11 @@ function Install-DWMBlurGlass {
     $src = "$scriptDir\ExplorerTransparency\DWMBlurGlass"
     if (Test-Path $src) {
         $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$src' -Destination 'C:\Windows\' -Recurse -Force"
-        Invoke-PowerRun $copyCmd
+        $copied = Invoke-PowerRun $copyCmd
+        if (-not $copied) {
+            Write-Log "Failed to copy DWMBlurGlass to C:\Windows\DWMBlurGlass" "ERROR"
+            return $false
+        }
         Write-Log "DWMBlurGlass copied to C:\Windows\DWMBlurGlass" "OK"
         Write-Log "  MANUAL STEP: Run C:\Windows\DWMBlurGlass\DWMBlurGlass.exe, download symbols, apply patch" "WARN"
         return $true
@@ -651,8 +656,13 @@ function Install-Components {
 
         $func = $entry.Func
         try {
-            & $func
-            $successCount++
+            $result = & $func
+            if ($result -eq $true) {
+                $successCount++
+            } else {
+                Write-Log "Component '$compName' reported failure" "ERROR"
+                $failCount++
+            }
         } catch {
             Write-Log "Component '$compName' failed: $_" "ERROR"
             $failCount++

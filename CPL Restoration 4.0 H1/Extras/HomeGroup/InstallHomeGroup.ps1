@@ -116,7 +116,7 @@ foreach ($path in $navpanePaths) {
             Set-ItemProperty -Path $path -Name "SortOrderIndex" -Value 46 -Type DWord
             Write-Status "  Set SortOrderIndex=46 at $path" -Color Green
         } catch {
-            Write-Status "  Failed to set SortOrderIndex at $path: $_" -Color Yellow
+            Write-Status "  Failed to set SortOrderIndex at ${path}: $_" -Color Yellow
         }
     }
 }
