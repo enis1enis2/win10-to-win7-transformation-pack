@@ -54,7 +54,11 @@ param(
 )
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 if (-not $LogPath) { $LogPath = "$scriptDir\install.log" }
+$escapedLogPath = $LogPath.Replace("'", "''")
 
 # --- Locale resolution ---
 if (-not $Language) {
@@ -130,10 +134,12 @@ function Invoke-PackProcess {
     )
 
     $targetExe = $FilePath
+$escapedtargetExe = if ($null -ne $targetExe) { $targetExe.ToString().Replace("'", "''") } else { $null }
     $targetArgs = $Arguments
 
     if ($UsePowerRun) {
         $powerRun = "$scriptDir\PowerRun\PowerRun_x64.exe"
+$escapedpowerRun = $powerRun.Replace("'", "''")
         if (-not (Test-Path $powerRun)) {
             Write-Log "PowerRun not found at $powerRun" "ERROR"
             throw "PowerRun missing"
@@ -202,6 +208,7 @@ function Install-Executable {
 function Install-StartMenu {
     Write-Log "--- Start Menu & Taskbar ---"
     $smDir = "$scriptDir\StartMenuAndTaskBar"
+$escapedsmDir = $smDir.Replace("'", "''")
     if (-not (Test-Path $smDir)) {
         Write-Log "StartMenu directory not found" "WARN"
         return $false
@@ -219,6 +226,7 @@ function Install-StartMenu {
 function Install-SecureUxTheme {
     Write-Log "--- Installing SecureUxTheme ---"
     $msi = "$scriptDir\SecureUxTheme\SecureUxTheme_x64.msi"
+$escapedmsi = $msi.Replace("'", "''")
     if (Test-Path $msi) {
         if (Install-Msi $msi) {
             Write-Log "SecureUxTheme installed (reboot may be required)" "OK"
@@ -239,6 +247,7 @@ function Install-Theme {
             return $true
         }
         $themeScript = "$scriptDir\Themes\copy.ps1"
+$escapedthemeScript = $themeScript.Replace("'", "''")
         if (Test-Path $themeScript) {
             try {
                 & $themeScript
@@ -262,8 +271,11 @@ function Install-Theme {
 function Install-DWMBlurGlass {
     Write-Log "--- DWMBlurGlass (transparent titlebars) ---"
     $src = "$scriptDir\ExplorerTransparency\DWMBlurGlass"
+$escapedsrc = $src.Replace("'", "''")
+        $escapedSrc = $src.Replace("'", "''")
     if (Test-Path $src) {
-        $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$src' -Destination 'C:\Windows\' -Recurse -Force"
+        $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedSrc' -Destination 'C:\Windows\' -Recurse -Force"
+$escapedcopyCmd = $copyCmd.Replace("'", "''")
         $copied = Invoke-PowerRun $copyCmd
         if (-not $copied) {
             Write-Log "Failed to copy DWMBlurGlass to C:\Windows\DWMBlurGlass" "ERROR"
@@ -280,6 +292,7 @@ function Install-DWMBlurGlass {
 function Install-AuthUX {
     Write-Log "--- Installing AuthUX (logon screen) ---"
     $exe = "$scriptDir\AuthUX v0.0.2a-beta\AuthUX-setup-x64.exe"
+$escapedexe = $exe.Replace("'", "''")
     if (Test-Path $exe) {
         if (Install-Executable $exe) {
             Write-Log "AuthUX installed" "OK"
@@ -295,6 +308,7 @@ function Install-AuthUX {
 function Install-Windhawk {
     Write-Log "--- Installing Windhawk ---"
     $installer = "$scriptDir\Windhawk\windhawk_setup.exe"
+$escapedinstaller = $installer.Replace("'", "''")
     if (Test-Path $installer) {
         if (Install-Executable $installer) {
             Write-Log "Windhawk installed" "OK"
@@ -314,6 +328,7 @@ function Install-WindhawkResources {
         return $true
     }
     $resourceScript = "$scriptDir\Windhawk\copyResources.ps1"
+$escapedresourceScript = $resourceScript.Replace("'", "''")
     if (Test-Path $resourceScript) {
         try {
             & $resourceScript
@@ -328,6 +343,7 @@ function Install-WindhawkResources {
     }
 
     $modsFile = "$scriptDir\Windhawk\mods.txt"
+$escapedmodsFile = $modsFile.Replace("'", "''")
     if (Test-Path $modsFile) {
         Write-Log "Windhawk mods to install manually from mods.txt:" "INFO"
         Get-Content $modsFile | ForEach-Object { Write-Log "  - $_" }
@@ -343,6 +359,7 @@ function Install-Sounds {
         return $true
     }
     $sndScript = "$scriptDir\Sounds\copyAndApplyWindows7Sounds.ps1"
+$escapedsndScript = $sndScript.Replace("'", "''")
     if (Test-Path $sndScript) {
         try {
             & $sndScript
@@ -365,6 +382,7 @@ function Install-Branding {
         return $true
     }
     $brScript = "$scriptDir\Branding\copy.ps1"
+$escapedbrScript = $brScript.Replace("'", "''")
     if (Test-Path $brScript) {
         try {
             & $brScript
@@ -383,6 +401,7 @@ function Install-Branding {
 function Install-Cursors {
     Write-Log "--- Installing Windows 7 Cursors ---"
     $infFile = "$scriptDir\Cursors\Install.inf"
+$escapedinfFile = $infFile.Replace("'", "''")
     if (Test-Path $infFile) {
         Write-Log "  MANUAL STEP: Right-click Cursors\Install.inf and select 'Install'" "WARN"
         return $true
@@ -394,7 +413,9 @@ function Install-Cursors {
 function Install-ClassicUAC {
     Write-Log "--- Classic Non-XAML UAC ---"
     $ntmu = "$scriptDir\classicuac-1.0.3\NTMU.exe"
+$escapedntmu = $ntmu.Replace("'", "''")
     $ini = "$scriptDir\classicuac-1.0.3\pack.ini"
+$escapedini = $ini.Replace("'", "''")
     if ((Test-Path $ntmu) -and (Test-Path $ini)) {
         Write-Log "  MANUAL STEP: Run classicuac-1.0.3\NTMU.exe, select pack.ini, apply" "WARN"
         return $true
@@ -407,6 +428,7 @@ function Install-CPL {
     Write-Log "--- Control Panel Restoration (Language: $global:InstallLanguage) ---"
     if ($PSCmdlet.ShouldProcess("Control Panel pages", "Install")) {
         $cplDir = "$scriptDir\CPL Restoration 4.0 H1"
+$escapedcplDir = $cplDir.Replace("'", "''")
         if (-not (Test-Path $cplDir)) {
             Write-Log "CPL Restoration directory not found" "WARN"
             return $false
@@ -416,6 +438,7 @@ function Install-CPL {
         $prepScripts = @("_ControlPanelLinks.ps1", "_ControlPanelRedirection.ps1")
         foreach ($ps in $prepScripts) {
             $psPath = "$cplDir\$ps"
+$escapedpsPath = $psPath.Replace("'", "''")
             if (Test-Path $psPath) {
                 Write-Log "  Running preparation: $ps" "INFO"
                 try {
@@ -449,6 +472,7 @@ function Install-CPL {
         $failCount = 0
         foreach ($s in $cplScripts) {
             $path = "$cplDir\$s"
+$escapedpath = $path.Replace("'", "''")
             if (Test-Path $path) {
                 Write-Log "  Installing CPL page: $s" "INFO"
                 try {
@@ -481,6 +505,7 @@ function Install-UserTiles {
         return $true
     }
     $tileScript = "$scriptDir\User tiles\copy.ps1"
+$escapedtileScript = $tileScript.Replace("'", "''")
     if (Test-Path $tileScript) {
         try {
             & $tileScript
@@ -530,17 +555,20 @@ function Install-Winaero {
 function Install-Games {
     Write-Log "--- Installing Windows 7 Games ---"
     $gamesDir = "$scriptDir\Games & Apps"
+$escapedgamesDir = $gamesDir.Replace("'", "''")
     if (-not (Test-Path $gamesDir)) {
         Write-Log "Games directory not found" "WARN"
         return $false
     }
 
     $sevenZipFiles = Get-ChildItem "$gamesDir\Windows 7 Games for Windows 10 and 8.zip.*"
+$escapedsevenZipFiles = $sevenZipFiles.Replace("'", "''")
     if ($sevenZipFiles.Count -ge 4) {
         Write-Log "  Games archive found. Extract Windows 7 Games for Windows 10 and 8.zip.* and run the installer" "WARN"
     }
 
     $calcDir = "$gamesDir\Calculator"
+$escapedcalcDir = $calcDir.Replace("'", "''")
     if (Test-Path $calcDir) {
         Write-Log "  Calculator found in Games & Apps\Calculator" "INFO"
     }
@@ -552,6 +580,7 @@ function Install-Games {
 function Install-HackBGRT {
     Write-Log "--- HackBGRT (Boot Screen) ---"
     $hackDir = "$scriptDir\HackBGRT-2.6.0 (Use with caution!)"
+$escapedhackDir = $hackDir.Replace("'", "''")
     if (-not (Test-Path $hackDir)) {
         Write-Log "HackBGRT directory not found" "WARN"
         return $false
@@ -570,6 +599,7 @@ function Install-HomeGroup {
         return $true
     }
     $hgScript = "$scriptDir\CPL Restoration 4.0 H1\Extras\HomeGroup\InstallHomeGroup.ps1"
+$escapedhgScript = $hgScript.Replace("'", "''")
     if (Test-Path $hgScript) {
         try {
             & $hgScript
@@ -592,6 +622,7 @@ function Install-DefaultPrograms {
         return $true
     }
     $dpScript = "$scriptDir\CPL Restoration 4.0 H1\DefaultPrograms.ps1"
+$escapeddpScript = $dpScript.Replace("'", "''")
     if (Test-Path $dpScript) {
         try {
             & $dpScript
@@ -609,6 +640,7 @@ function Install-DefaultPrograms {
 
 # --- Component Manifest ---
 $manifestPath = Join-Path $scriptDir "components.json"
+$escapedmanifestPath = $manifestPath.Replace("'", "''")
 if (Test-Path $manifestPath) {
     $componentMap = Get-Content $manifestPath -Raw | ConvertFrom-Json
 } else {
@@ -739,6 +771,7 @@ function Install-Components {
     # Load backup module and initialize backup session
     Write-Log "Initializing backup system..." "INFO"
     $backupMod = Join-Path $scriptDir "Backup\BackupModule.ps1"
+$escapedbackupMod = $backupMod.Replace("'", "''")
     if (Test-Path $backupMod) {
         . $backupMod
         $backupSession = Initialize-Backup
@@ -825,6 +858,7 @@ try {
             $selectedComponents = $componentMap.Name
         } else {
             $indices = $input -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^\d+$' }
+$escapedindices = $indices.Replace("'", "''")
             $selectedComponents = $indices | ForEach-Object {
                 $idx = [int]$_ - 1
                 if ($idx -ge 0 -and $idx -lt $componentMap.Count) { $componentMap[$idx].Name }

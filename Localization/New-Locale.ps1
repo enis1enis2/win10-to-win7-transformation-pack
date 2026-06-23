@@ -19,8 +19,13 @@ param(
 )
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 $packRoot = Split-Path -Parent $scriptDir
+$escapedpackRoot = $packRoot.Replace("'", "''")
 $cplRoot = "$packRoot\CPL Restoration 4.0 H1"
+$escapedcplRoot = $cplRoot.Replace("'", "''")
 $created = 0
 
 # Simple locale code validation (xx-XX or xx)
@@ -35,6 +40,7 @@ Get-ChildItem -Path "$cplRoot\Pages" -Recurse -Directory | Where-Object {
 } | ForEach-Object {
     $parentDir = $_.Parent.FullName
     $newLocaleDir = Join-Path $parentDir $Locale
+$escapednewLocaleDir = $newLocaleDir.Replace("'", "''")
     if (-not (Test-Path $newLocaleDir)) {
         New-Item -Path $newLocaleDir -ItemType Directory -Force | Out-Null
         Write-Host "Created: $newLocaleDir" -ForegroundColor Green

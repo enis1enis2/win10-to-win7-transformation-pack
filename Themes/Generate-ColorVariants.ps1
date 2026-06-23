@@ -1,3 +1,4 @@
+#requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Generates color variant .theme files from base Aero10 themes.
@@ -5,6 +6,9 @@
 #>
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 $variants = @(
     @{ NameSuffix = "(Ruby Red)"; Color = "0x6B1E3A8A" }
     @{ NameSuffix = "(Emerald Green)"; Color = "0x6B3E9B4F" }
@@ -22,6 +26,7 @@ $bases = @(
 
 foreach ($base in $bases) {
     $basePath = Join-Path $scriptDir $base.File
+$escapedbasePath = $basePath.Replace("'", "''")
     if (-not (Test-Path $basePath)) {
         Write-Warning "Base theme not found: $basePath"
         continue
@@ -31,6 +36,7 @@ foreach ($base in $bases) {
     foreach ($variant in $variants) {
         $newName = "$($base.Name) $($variant.NameSuffix).theme"
         $newPath = Join-Path $scriptDir $newName
+$escapednewPath = $newPath.Replace("'", "''")
         if (Test-Path $newPath) { continue }
 
         $newContent = $baseContent -replace

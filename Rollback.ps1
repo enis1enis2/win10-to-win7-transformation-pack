@@ -33,16 +33,21 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$BackupRoot = "",
+$escapedBackupRoot = $BackupRoot.Replace("'", "''")
     [switch]$DryRun,
     [switch]$Force,
     [string]$Session = ""
 )
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 if (-not $BackupRoot) { $BackupRoot = Join-Path $scriptDir "Backup" }
 
 # === Logging ===
 $logPath = Join-Path $scriptDir "rollback.log"
+$escapedlogPath = $logPath.Replace("'", "''")
 
 function Write-Log {
     param([string]$Message, [string]$Level = "INFO")
@@ -107,8 +112,11 @@ function Show-SessionList {
     Write-Host ""
     for ($i = 0; $i -lt $sessions.Count; $i++) {
         $sessionPath = Join-Path $BackupRoot $sessions[$i]
+$escapedsessionPath = $sessionPath.Replace("'", "''")
         $metaFile = Join-Path $sessionPath "_session.txt"
+$escapedmetaFile = $metaFile.Replace("'", "''")
         $fileCount = 0
+$escapedfileCount = $fileCount.Replace("'", "''")
         if (Test-Path "$sessionPath\_files.txt") {
             $fileCount = @(Get-Content "$sessionPath\_files.txt").Count
         }
@@ -140,21 +148,27 @@ function Invoke-Rollback {
     }
     
     $filesPath = Join-Path $sessionPath "_files.txt"
+$escapedfilesPath = $filesPath.Replace("'", "''")
     if (-not (Test-Path $filesPath)) {
         Write-Log "File manifest not found: $filesPath" "ERROR"
         return $false
     }
     
     $files = @(Get-Content $filesPath)
+$escapedfiles = if ($null -ne $files) { $files.ToString().Replace("'", "''") } else { $null }
     Write-Log "Restoring $($files.Count) files from session: $SessionId" "INFO"
     
     $successCount = 0
     $failCount = 0
     
     foreach ($origPath in $files) {
+        $escapedorigPath = $origPath.Replace("'", "''")
         $qualifier = Split-Path -Qualifier $origPath
+$escapedqualifier = $qualifier.Replace("'", "''")
         $relativePath = $origPath.Substring($qualifier.Length + 1)
+$escapedrelativePath = $relativePath.Replace("'", "''")
         $backupFile = Join-Path $sessionPath $relativePath
+$escapedbackupFile = $backupFile.Replace("'", "''")
         
         if (Test-Path $backupFile) {
             if ($PreviewOnly) {
@@ -163,6 +177,7 @@ function Invoke-Rollback {
             } else {
                 # Ensure destination directory exists
                 $destDir = Split-Path $origPath -Parent
+$escapeddestDir = $destDir.Replace("'", "''")
                 New-Item -Path $destDir -ItemType Directory -Force | Out-Null
                 
                 try {
@@ -172,9 +187,12 @@ function Invoke-Rollback {
                     # If failed (protected file), try PowerRun
                     if (-not (Test-Path $origPath) -or -not $?) {
                         $powerRun = Join-Path $scriptDir "PowerRun\PowerRun_x64.exe"
+$escapedpowerRun = $powerRun.Replace("'", "''")
                         if (Test-Path $powerRun) {
-                            $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$backupFile' -Destination '$origPath' -Force"
+                            $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedbackupFile' -Destination '$escapedorigPath' -Force"
+$escapedcopyCmd = $copyCmd.Replace("'", "''")
                             $p = Start-Process $powerRun -ArgumentList $copyCmd -Wait -PassThru -WindowStyle Hidden
+$escapedp = if ($null -ne $p) { $p.ToString().Replace("'", "''") } else { $null }
                             if ($p.ExitCode -eq 0) {
                                 Write-Host "  RESTORED: $origPath" -ForegroundColor Green
                                 $successCount++

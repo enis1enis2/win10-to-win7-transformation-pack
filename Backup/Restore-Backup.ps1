@@ -35,8 +35,13 @@ param(
 )
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 $backupRoot = $scriptDir
+$escapedbackupRoot = $backupRoot.Replace("'", "''")
 $modulePath = Join-Path $scriptDir "BackupModule.ps1"
+$escapedmodulePath = $modulePath.Replace("'", "''")
 
 # Load backup module
 . $modulePath
@@ -55,6 +60,7 @@ function Show-Sessions {
     Write-Host ""
 
     for ($i = 0; $i -lt $sessions.Count; $i++) {
+$escapedi = if ($null -ne $i) { $i.ToString().Replace("'", "''") } else { $null }
         $s = $sessions[$i]
         Write-Host "  $($i+1). [$($s.Session)]" -ForegroundColor Yellow
         Write-Host "      Created: $($s.Created)" -ForegroundColor Gray
@@ -88,18 +94,21 @@ if (-not $Session) {
 }
 
 $sessionDir = Join-Path $backupRoot $Session
+$escapedsessionDir = $sessionDir.Replace("'", "''")
 if (-not (Test-Path $sessionDir)) {
     Write-Error "Session not found: $sessionDir"
     exit 1
 }
 
 $filesPath = Join-Path $sessionDir "_files.txt"
+$escapedfilesPath = $filesPath.Replace("'", "''")
 if (-not (Test-Path $filesPath)) {
     Write-Error "File manifest not found. Session may be incomplete."
     exit 1
 }
 
 $files = Get-Content $filesPath
+$escapedfiles = if ($null -ne $files) { $files.ToString().Replace("'", "''") } else { $null }
 Write-Host ""
 Write-Host "Session: $Session" -ForegroundColor Cyan
 Write-Host "Files: $($files.Count) backed up" -ForegroundColor Gray
@@ -125,8 +134,10 @@ if (-not $All) {
             exit 1
         }
         $singleFile = $files[$fileIdx]
+$escapedsingleFile = if ($null -ne $singleFile) { $singleFile.ToString().Replace("'", "''") } else { $null }
         $relativePath = $singleFile.Substring(3)
         $backupFile = Join-Path $sessionDir $relativePath
+$escapedbackupFile = $backupFile.Replace("'", "''")
 
         if (-not (Test-Path $backupFile)) {
             Write-Error "Backup file not found: $backupFile"
@@ -140,6 +151,7 @@ if (-not $All) {
 
         Write-Host "Restoring: $singleFile ..." -ForegroundColor White
         $ok = Restore-File -BackupPath $backupFile -OriginalPath $singleFile -UsePowerRun
+$escapedok = $ok.Replace("'", "''")
         if ($ok) {
             Write-Host "  Restored successfully." -ForegroundColor Green
         } else {

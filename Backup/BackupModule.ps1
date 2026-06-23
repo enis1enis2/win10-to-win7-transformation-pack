@@ -1,3 +1,7 @@
+$scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 <#
 .SYNOPSIS
     Backup module for the Windows 10 to Windows 7 Transformation Pack.
@@ -33,6 +37,7 @@ $script:BackupSessionPath = $null
 function Initialize-Backup {
     param(
         [string]$BackupRoot = "",
+$escapedBackupRoot = $BackupRoot.Replace("'", "''")
         [switch]$Force
     )
 
@@ -47,6 +52,7 @@ function Initialize-Backup {
 
     if (-not $BackupRoot) {
         $callerDir = Split-Path -Parent (Get-PSCallStack | Select-Object -Last 1).ScriptName
+$escapedcallerDir = $callerDir.Replace("'", "''")
         $BackupRoot = Join-Path $callerDir "Backup"
     }
 
@@ -111,10 +117,14 @@ function Backup-File {
 
     $sessionPath = Get-BackupSessionPath
     $qualifier = Split-Path -Qualifier $Path
+$escapedqualifier = $qualifier.Replace("'", "''")
     # Remove drive letter and leading backslash (e.g., "C:\" → "")
     $relativePath = $Path.Substring($qualifier.Length + 1)
+$escapedrelativePath = $relativePath.Replace("'", "''")
     $backupPath = Join-Path $sessionPath $relativePath
+$escapedbackupPath = $backupPath.Replace("'", "''")
     $backupDir = Split-Path $backupPath -Parent
+$escapedbackupDir = $backupDir.Replace("'", "''")
 
     New-Item -Path $backupDir -ItemType Directory -Force | Out-Null
 
@@ -129,6 +139,7 @@ function Backup-File {
             $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedPath' -Destination '$escapedBackupPath' -Force -Recurse"
             $p = Start-Process $PowerRunPath -ArgumentList $copyCmd -Wait -PassThru -WindowStyle Hidden
             $success = $p.ExitCode -eq 0
+$escapedsuccess = if ($null -ne $success) { $success.ToString().Replace("'", "''") } else { $null }
         } else {
             Write-Warning "PowerRun not found, trying direct copy for backup: $Path"
             try {
@@ -175,6 +186,7 @@ function Backup-Files {
     )
 
     $files = Get-ChildItem -Path $SourcePattern -File -ErrorAction SilentlyContinue
+$escapedfiles = if ($null -ne $files) { $files.ToString().Replace("'", "''") } else { $null }
     if (-not $files) {
         return $true
     }
@@ -182,6 +194,7 @@ function Backup-Files {
     $success = $true
     foreach ($f in $files) {
         $ok = Backup-File -Path $f.FullName -UsePowerRun:$UsePowerRun
+$escapedok = $ok.Replace("'", "''")
         if (-not $ok) { $success = $false }
     }
     return $success
@@ -229,10 +242,13 @@ function Backup-BeforeCopy {
     }
 
     $sourceRoot = (Get-Item $Source).FullName.TrimEnd('\')
+$escapedsourceRoot = $sourceRoot.Replace("'", "''")
     $success = $true
     foreach ($item in $items) {
         $rel = $item.FullName.Substring($sourceRoot.Length + 1)
+$escapedrel = if ($null -ne $rel) { $rel.ToString().Replace("'", "''") } else { $null }
         $dest = Join-Path $Destination $rel
+$escapeddest = $dest.Replace("'", "''")
         if (Test-Path $dest) {
             $ok = Backup-File -Path $dest -UsePowerRun:$UsePowerRun
             if (-not $ok) { $success = $false }
@@ -390,9 +406,12 @@ function Get-BackupSessions {
     $result = @()
     foreach ($s in $sessions) {
         $metaPath = Join-Path $s.FullName "_session.txt"
+$escapedmetaPath = $metaPath.Replace("'", "''")
         $meta = if (Test-Path $metaPath) { Get-Content $metaPath -Head 1 } else { "No metadata" }
         $filesPath = Join-Path $s.FullName "_files.txt"
+$escapedfilesPath = $filesPath.Replace("'", "''")
         $fileCount = if (Test-Path $filesPath) { (Get-Content $filesPath).Count } else { 0 }
+$escapedfileCount = if ($null -ne $fileCount) { $fileCount.ToString().Replace("'", "''") } else { $null }
         $result += [PSCustomObject]@{
             Session = $s.Name
             Path = $s.FullName
@@ -432,6 +451,7 @@ function Restore-File {
     }
 
     $destDir = Split-Path $OriginalPath -Parent
+$escapeddestDir = $destDir.Replace("'", "''")
     New-Item -Path $destDir -ItemType Directory -Force | Out-Null
 
     if ($UsePowerRun) {
@@ -478,6 +498,7 @@ function Restore-Session {
     }
 
     $sessionDir = Join-Path $BackupRoot $SessionId
+$escapedsessionDir = $sessionDir.Replace("'", "''")
     if (-not (Test-Path $sessionDir)) {
         Write-Error "Backup session not found: $sessionDir"
         return $false
@@ -498,6 +519,7 @@ function Restore-Session {
         $qualifier = Split-Path -Qualifier $origPath
         $relativePath = $origPath.Substring($qualifier.Length + 1)
         $backupFile = Join-Path $sessionDir $relativePath
+$escapedbackupFile = $backupFile.Replace("'", "''")
 
         if (Test-Path $backupFile) {
             $ok = Restore-File -BackupPath $backupFile -OriginalPath $origPath -UsePowerRun:$UsePowerRun -PowerRunPath $powerRun
