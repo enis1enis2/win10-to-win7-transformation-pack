@@ -1,3 +1,5 @@
+#requires -RunAsAdministrator
+$scriptDir = Split-Path -Parent $PSCommandPath
 # Ensure script runs in its own directory
 Set-Location -Path (Split-Path -Parent $PSCommandPath)
 
@@ -12,7 +14,8 @@ if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $
 # "CPL Restoration\Pages\User Accounts CPL\7 Style\system32\en-US"
 # into
 # "C:\Windows\System32\en-US"
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '.\Pages\User Accounts CPL\7 Style\system32\en-US\usercpl.dll.mui' -Destination 'C:\Windows\System32\en-US\' -Recurse -Force" -Wait -WindowStyle Hidden
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$scriptDir\Pages\User Accounts CPL\7 Style\system32\en-US\usercpl.dll.mui' -Destination 'C:\Windows\System32\en-US\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
 
 
 # KOPY "C:\Windows\SystemResources\usercpl.dll.mun"  into "CPL Restoration 4.0 H1\Pages\User Accounts CPL"
@@ -21,18 +24,24 @@ Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -Execut
 # KOPY  "CPL Restoration 4.0 H1\Pages\User Accounts CPLusercpl.dll.mun" into "C:\Windows\SystemResources\usercpl.dll.mun" 
 # Backup: original usercpl.dll.mun before ResourceHacker patching
 Backup-File -Path "C:\Windows\SystemResources\usercpl.dll.mun" -UsePowerRun
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\SystemResources\usercpl.dll.mun' -Destination '.\Pages\User Accounts CPL\' -Recurse -Force" -Wait -WindowStyle Hidden
-Start-Process ".\..\resource_hacker\ResourceHacker.exe" -ArgumentList '-open ".\Pages\User Accounts CPL\usercpl.dll.mun"', '-resource "Pages\User Accounts CPL\7 Style\systemresources\usercpl.dll.mun\usercpl.res"', '-save ".\Pages\User Accounts CPL\usercpl.dll.mun"', '-action addoverwrite'
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '.\Pages\User Accounts CPL\usercpl.dll.mun' -Destination 'C:\Windows\SystemResources\' -Recurse -Force" -Wait -WindowStyle Hidden
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path 'Pages\User Accounts CPL\usercpl.dll.mun' -Force" -Wait -WindowStyle Hidden
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\SystemResources\usercpl.dll.mun' -Destination '$scriptDir\Pages\User Accounts CPL\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
+$p = Start-Process "$scriptDir\..\resource_hacker\ResourceHacker.exe" -ArgumentList "-open `"$scriptDir\Pages\User Accounts CPL\usercpl.dll.mun`"", '-resource "$scriptDir\Pages\User Accounts CPL\7 Style\systemresources\usercpl.dll.mun\usercpl.res"', "-save `"$scriptDir\Pages\User Accounts CPL\usercpl.dll.mun`"", '-action addoverwrite'
+Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$scriptDir\Pages\User Accounts CPL\usercpl.dll.mun' -Destination 'C:\Windows\SystemResources\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path '$scriptDir\Pages\User Accounts CPL\usercpl.dll.mun' -Force" -Wait -WindowStyle Hidden -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
 
 # KOPY "C:\Windows\system32\shacct.dll"  into "CPL Restoration 4.0 H1\Pages\User Accounts CPL"
-# Use Resource Hacker to import the included resource file(shacct.res,located in "Pages\User Accounts CPL\7 Style\system32\shacct.dll" 
+# Use Resource Hacker to import the included resource file(shacct.res,located in "$scriptDir\Pages\User Accounts CPL\7 Style\system32\shacct.dll"
 # into the shacct.dll file located in "CPL Restoration 4.0 H1\Pages\User Accounts CPL"
 # KOPY "CPL Restoration 4.0 H1\Pages\User Accounts CPL\shacct.dll" into "C:\Windows\system32" 
 # Backup: original shacct.dll before ResourceHacker patching
 Backup-File -Path "C:\Windows\system32\shacct.dll" -UsePowerRun
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\system32\shacct.dll' -Destination '.\Pages\User Accounts CPL\' -Recurse -Force" -Wait -WindowStyle Hidden
-Start-Process ".\..\resource_hacker\ResourceHacker.exe" -ArgumentList '-open ".\Pages\User Accounts CPL\shacct.dll"', '-resource ".\Pages\User Accounts CPL\7 Style\system32\shacct.dll\shacct.res"', '-save ".\Pages\User Accounts CPL\shacct.dll"', '-action addoverwrite'
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '.\Pages\User Accounts CPL\shacct.dll' -Destination 'C:\Windows\system32\' -Recurse -Force" -Wait -WindowStyle Hidden
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path 'Pages\User Accounts CPL\shacct.dll' -Force" -Wait -WindowStyle Hidden
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\system32\shacct.dll' -Destination '$scriptDir\Pages\User Accounts CPL\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
+$p = Start-Process "$scriptDir\..\resource_hacker\ResourceHacker.exe" -ArgumentList "-open `"$scriptDir\Pages\User Accounts CPL\shacct.dll`"", "-resource `"$scriptDir\Pages\User Accounts CPL\7 Style\system32\shacct.dll\shacct.res`"", "-save `"$scriptDir\Pages\User Accounts CPL\shacct.dll`"", '-action addoverwrite'
+Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$scriptDir\Pages\User Accounts CPL\shacct.dll' -Destination 'C:\Windows\system32\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path '$scriptDir\Pages\User Accounts CPL\shacct.dll' -Force" -Wait -WindowStyle Hidden -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }

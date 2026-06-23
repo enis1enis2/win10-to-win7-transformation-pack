@@ -119,34 +119,78 @@ function New-RestorePoint {
 }
 
 # --- Component helpers ---
+function Invoke-PackProcess {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+        [string]$Arguments = "",
+        [switch]$UsePowerRun,
+        [switch]$NoNewWindow,
+        [string]$WindowStyle = "Normal"
+    )
+
+    $targetExe = $FilePath
+    $targetArgs = $Arguments
+
+    if ($UsePowerRun) {
+        $powerRun = "$scriptDir\PowerRun\PowerRun_x64.exe"
+        if (-not (Test-Path $powerRun)) {
+            Write-Log "PowerRun not found at $powerRun" "ERROR"
+            return $null
+        }
+        # If we use PowerRun, the original FilePath and Arguments become arguments to PowerRun
+        $targetExe = $powerRun
+        $targetArgs = "`"$FilePath`" $Arguments"
+    }
+
+    try {
+        $p = Start-Process $targetExe -ArgumentList $targetArgs -Wait -PassThru -NoNewWindow:$NoNewWindow -WindowStyle $WindowStyle
+        if (-not $p) {
+            Write-Log "Failed to start process: $FilePath" "ERROR"
+            return $null
+        }
+
+        if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) {
+            Write-Log "Process '$FilePath' failed with exit code $($p.ExitCode)" "ERROR"
+        }
+
+        return $p
+    } catch {
+        Write-Log "Exception starting process '$FilePath': $_" "ERROR"
+        return $null
+    }
+}
+
 function Invoke-PowerRun {
     param([string]$Command)
-    $powerRun = "$scriptDir\PowerRun\PowerRun_x64.exe"
-    if (-not (Test-Path $powerRun)) { return $false }
-    $p = Start-Process $powerRun -ArgumentList $Command -Wait -PassThru -WindowStyle Hidden
-    return $p.ExitCode -eq 0
+    $p = Invoke-PackProcess -FilePath $Command -UsePowerRun -WindowStyle Hidden
+    return ($null -ne $p -and $p.ExitCode -eq 0)
 }
 
 function Install-Msi {
     param([string]$MsiPath)
-    if (-not (Test-Path $MsiPath)) { return $false }
-    $p = Start-Process msiexec.exe -ArgumentList "/i `"$MsiPath`" /passive /norestart" -Wait -PassThru -NoNewWindow
+    if (-not (Test-Path $MsiPath)) {
+        Write-Log "MSI not found: $MsiPath" "WARN"
+        return $false
+    }
+    $p = Invoke-PackProcess -FilePath "msiexec.exe" -Arguments "/i `"$MsiPath`" /passive /norestart" -NoNewWindow
+    if ($null -eq $p) { return $false }
+
     if ($p.ExitCode -eq 3010) {
         Write-Log "MSI installed but system restart is required" "WARN"
         return $true
-    } elseif ($p.ExitCode -eq 0) {
-        return $true
-    } else {
-        Write-Log "MSI installation failed with exit code $($p.ExitCode): $MsiPath" "ERROR"
-        return $false
     }
+    return ($p.ExitCode -eq 0)
 }
 
 function Install-Executable {
     param([string]$ExePath, [string]$Args = "/S")
-    if (-not (Test-Path $ExePath)) { return $false }
-    $p = Start-Process $ExePath -ArgumentList $Args -Wait -PassThru
-    return $p.ExitCode -eq 0
+    if (-not (Test-Path $ExePath)) {
+        Write-Log "Executable not found: $ExePath" "WARN"
+        return $false
+    }
+    $p = Invoke-PackProcess -FilePath $ExePath -Arguments $Args
+    return ($null -ne $p -and $p.ExitCode -eq 0)
 }
 
 # --- Component Installers ---
@@ -263,6 +307,7 @@ function Install-WindhawkResources {
         Get-Content $modsFile | ForEach-Object { Write-Log "  - $_" }
         Write-Log "  Open Windhawk from system tray and install the mods listed above" "WARN"
     }
+    return $true
 }
 
 function Install-Sounds {
@@ -344,6 +389,10 @@ function Install-CPL {
             if (Test-Path $psPath) {
                 Write-Log "  Running preparation: $ps" "INFO"
                 & $psPath
+                if (-not $?) {
+                    Write-Log "  Preparation script $ps failed" "ERROR"
+                    return $false
+                }
             } else {
                 Write-Log "  Preparation script not found: $ps" "WARN"
             }
@@ -371,12 +420,20 @@ function Install-CPL {
             if (Test-Path $path) {
                 Write-Log "  Installing CPL page: $s" "INFO"
                 try {
+                    $ErrorActionPreference = "Stop"
                     & $path
-                    Write-Log "  $s completed" "OK"
-                    $successCount++
+                    if (-not $?) {
+                        Write-Log "  $s failed with exit code $LASTEXITCODE" "ERROR"
+                        $failCount++
+                    } else {
+                        Write-Log "  $s completed" "OK"
+                        $successCount++
+                    }
                 } catch {
                     Write-Log "  $s failed: $_" "ERROR"
                     $failCount++
+                } finally {
+                    $ErrorActionPreference = "Continue"
                 }
             } else {
                 Write-Log "  CPL script not found: $s" "WARN"
@@ -532,25 +589,25 @@ function Install-DefaultPrograms {
     return $false
 }
 
-# --- Dependency map ---
-$dependencyMap = @{
-    "Theme"          = @("SecureUxTheme")
-    "DWMBlurGlass"   = @("SecureUxTheme")
-    "CPL"            = @("SecureUxTheme")
-    "Resources"      = @("Windhawk")
-    "DefaultPrograms"= @("CPL")
-    "HomeGroup"      = @("CPL")
+# --- Component Manifest ---
+$manifestPath = Join-Path $scriptDir "components.json"
+if (Test-Path $manifestPath) {
+    $componentMap = Get-Content $manifestPath -Raw | ConvertFrom-Json
+} else {
+    Write-Log "Manifest components.json not found!" "ERROR"
+    exit 1
 }
 
 function Test-Dependencies {
     param([string[]]$SelectedComponents)
     $missing = @{}
-    foreach ($comp in $SelectedComponents) {
-        if ($dependencyMap.ContainsKey($comp)) {
-            foreach ($dep in $dependencyMap[$comp]) {
+    foreach ($compName in $SelectedComponents) {
+        $comp = $componentMap | Where-Object { $_.Name -eq $compName }
+        if ($comp -and $comp.Deps) {
+            foreach ($dep in $comp.Deps) {
                 if ($dep -notin $SelectedComponents) {
-                    if (-not $missing.ContainsKey($comp)) { $missing[$comp] = @() }
-                    $missing[$comp] += $dep
+                    if (-not $missing.ContainsKey($compName)) { $missing[$compName] = @() }
+                    $missing[$compName] += $dep
                 }
             }
         }
@@ -570,29 +627,6 @@ function Test-Dependencies {
     }
 }
 
-# --- Component registry ---
-$componentMap = @(
-    @{ Name = "SecureUxTheme"; Func = "Install-SecureUxTheme"; Desc = "Enable custom theme support (foundation)" }
-    @{ Name = "Theme"; Func = "Install-Theme"; Desc = "Windows 7 Aero themes (6 accent colors)" }
-    @{ Name = "DWMBlurGlass"; Func = "Install-DWMBlurGlass"; Desc = "Transparent title bars (Aero Glass)" }
-    @{ Name = "AuthUX"; Func = "Install-AuthUX"; Desc = "Windows 7 logon screen" }
-    @{ Name = "Windhawk"; Func = "Install-Windhawk"; Desc = "Windhawk mod platform" }
-    @{ Name = "Resources"; Func = "Install-WindhawkResources"; Desc = "Resource Redirect files + mod list" }
-    @{ Name = "Sounds"; Func = "Install-Sounds"; Desc = "Windows 7 sound scheme" }
-    @{ Name = "Branding"; Func = "Install-Branding"; Desc = "Windows 7 logo branding" }
-    @{ Name = "Cursors"; Func = "Install-Cursors"; Desc = "Windows 7 cursor scheme" }
-    @{ Name = "UAC"; Func = "Install-ClassicUAC"; Desc = "Classic (non-XAML) UAC dialog" }
-    @{ Name = "CPL"; Func = "Install-CPL"; Desc = "Control Panel pages restoration (21 pages)" }
-    @{ Name = "UserTiles"; Func = "Install-UserTiles"; Desc = "Windows 7 user account pictures" }
-    @{ Name = "OpenWithEx"; Func = "Install-OpenWithEx"; Desc = "Extended Open With dialog" }
-    @{ Name = "Winaero"; Func = "Install-Winaero"; Desc = "Winaero Tweaker (legacy settings)" }
-    @{ Name = "Games"; Func = "Install-Games"; Desc = "Windows 7 games (extract + install)" }
-    @{ Name = "StartMenu"; Func = "Install-StartMenu"; Desc = "Explorer7 or StartIsBack++" }
-    @{ Name = "HackBGRT"; Func = "Install-HackBGRT"; Desc = "Windows 7 boot screen (UEFI, risky)" }
-    @{ Name = "HomeGroup"; Func = "Install-HomeGroup"; Desc = "Restore HomeGroup (requires stobject.dll from Win10 1607)" }
-    @{ Name = "DefaultPrograms"; Func = "Install-DefaultPrograms"; Desc = "Fix Default Programs CPL dead links" }
-)
-
 # --- Interactive menu ---
 function Show-Menu {
     Write-Host ""
@@ -607,9 +641,67 @@ function Show-Menu {
     Write-Host ""
 
     for ($i = 0; $i -lt $componentMap.Count; $i++) {
-        Write-Host "  $($i+1). $($componentMap[$i].Name)" -ForegroundColor Yellow
+        $risk = if ($componentMap[$i].Risk) { $componentMap[$i].Risk } else { "Unknown" }
+        $riskColor = switch ($risk) {
+            "Low" { "Green" }
+            "Medium" { "Yellow" }
+            "High" { "Red" }
+            "Critical" { "Magenta" }
+            Default { "White" }
+        }
+        Write-Host "  $($i+1). $($componentMap[$i].Name) " -NoNewline -ForegroundColor Yellow
+        Write-Host "[$risk Risk]" -ForegroundColor $riskColor
         Write-Host "      $($componentMap[$i].Desc)" -ForegroundColor Gray
     }
+    Write-Host ""
+}
+
+function Show-PreflightReport {
+    param([string[]]$SelectedComponents)
+
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "          PREFLIGHT RISK REPORT" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "The following components will be installed:" -ForegroundColor White
+    Write-Host ""
+
+    $maxRisk = "Low"
+    foreach ($compName in $SelectedComponents) {
+        $comp = $componentMap | Where-Object { $_.Name -eq $compName }
+        $risk = if ($comp.Risk) { $comp.Risk } else { "Low" }
+        $riskColor = switch ($risk) {
+            "Low" { "Green" }
+            "Medium" { "Yellow" }
+            "High" { "Red" }
+            "Critical" { "Magenta" }
+            Default { "White" }
+        }
+        Write-Host "  - $($compName.PadRight(15)) [Risk: " -NoNewline
+        Write-Host "$risk" -NoNewline -ForegroundColor $riskColor
+        Write-Host "]"
+
+        # Update max risk for summary
+        if ($risk -eq "Critical") { $maxRisk = "Critical" }
+        elseif ($risk -eq "High" -and $maxRisk -ne "Critical") { $maxRisk = "High" }
+        elseif ($risk -eq "Medium" -and $maxRisk -notin @("High", "Critical")) { $maxRisk = "Medium" }
+    }
+
+    Write-Host ""
+    Write-Host "SUMMARY RISK LEVEL: " -NoNewline
+    $summaryColor = switch ($maxRisk) {
+        "Low" { "Green" }
+        "Medium" { "Yellow" }
+        "High" { "Red" }
+        "Critical" { "Magenta" }
+    }
+    Write-Host "$maxRisk" -ForegroundColor $summaryColor
+
+    if ($maxRisk -eq "Critical" -or $maxRisk -eq "High") {
+        Write-Host "WARNING: High/Critical risk components can affect system stability or boot." -ForegroundColor Red
+        Write-Host "Ensure you have a full system backup before proceeding." -ForegroundColor Red
+    }
+    Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
 }
 
@@ -732,11 +824,21 @@ try {
     # Deduplicate
     $selectedComponents = $selectedComponents | Select-Object -Unique
 
-    # Confirm with user in interactive mode
-    if (-not $Silent -and -not $All -and -not $WhatIfPreference) {
+    # Show preflight report
+    if (-not $Silent -and -not $WhatIfPreference -and -not $All) {
+        Show-PreflightReport -SelectedComponents $selectedComponents
+
+        # Generate Change Inventory (Static list based on manifest)
+        Write-Host "CHANGE INVENTORY:" -ForegroundColor Cyan
+        foreach ($compName in $selectedComponents) {
+            $comp = $componentMap | Where-Object { $_.Name -eq $compName }
+            Write-Host "  [$($comp.Name)]" -ForegroundColor Yellow
+            Write-Host "    Purpose: $($comp.Desc)" -ForegroundColor Gray
+            if ($comp.Deps) { Write-Host "    Dependencies: $($comp.Deps -join ', ')" -ForegroundColor Gray }
+        }
         Write-Host ""
-        Write-Host "Components to install: $($selectedComponents -join ', ')" -ForegroundColor Cyan
-        $confirm = Read-Host "Proceed? (Y/N)"
+
+        $confirm = Read-Host "Do you want to proceed with the installation? (Y/N)"
         if ($confirm -ne 'Y' -and $confirm -ne 'y') {
             Write-Log "Installation cancelled by user" "INFO"
             exit 0
