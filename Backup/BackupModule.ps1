@@ -117,7 +117,10 @@ function Backup-File {
             $PowerRunPath = Find-PowerRun
         }
         if (Test-Path $PowerRunPath) {
-            $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$Path' -Destination '$backupPath' -Force"
+            # Use single quotes for paths to avoid expansion and handle single quotes by doubling them
+            $escapedPath = $Path.Replace("'", "''")
+            $escapedBackupPath = $backupPath.Replace("'", "''")
+            $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedPath' -Destination '$escapedBackupPath' -Force -Recurse"
             $p = Start-Process $PowerRunPath -ArgumentList $copyCmd -Wait -PassThru -WindowStyle Hidden
             $success = $p.ExitCode -eq 0
         } else {
@@ -132,7 +135,7 @@ function Backup-File {
         }
     } else {
         try {
-            Copy-Item -Path $Path -Destination $backupPath -Force -ErrorAction Stop
+            Copy-Item -Path $Path -Destination $backupPath -Force -Recurse -ErrorAction Stop
             $success = $true
         } catch {
             Write-Warning "Failed to back up $Path : $_"
@@ -418,14 +421,16 @@ function Restore-File {
     if ($UsePowerRun) {
         if (-not $PowerRunPath) { $PowerRunPath = Find-PowerRun }
         if (Test-Path $PowerRunPath) {
-            $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$BackupPath' -Destination '$OriginalPath' -Force"
+            $escapedBackupPath = $BackupPath.Replace("'", "''")
+            $escapedOriginalPath = $OriginalPath.Replace("'", "''")
+            $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedBackupPath' -Destination '$escapedOriginalPath' -Force -Recurse"
             $p = Start-Process $PowerRunPath -ArgumentList $copyCmd -Wait -PassThru -WindowStyle Hidden
             return ($p.ExitCode -eq 0)
         }
     }
 
     try {
-        Copy-Item -Path $BackupPath -Destination $OriginalPath -Force -ErrorAction Stop
+        Copy-Item -Path $BackupPath -Destination $OriginalPath -Force -Recurse -ErrorAction Stop
         return $true
     } catch {
         Write-Error "Restore failed: $_"

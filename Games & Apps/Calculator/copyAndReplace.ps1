@@ -1,3 +1,4 @@
+#requires -RunAsAdministrator
 # === Backup existing files before modification ===
 $__sDir = Split-Path -Parent $PSCommandPath
 $__bkMod = Join-Path $__sDir "..\..\Backup\BackupModule.ps1"

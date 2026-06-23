@@ -1,9 +1,14 @@
+#requires -RunAsAdministrator
+$scriptDir = Split-Path -Parent $PSCommandPath
 # === Backup existing files before modification ===
 $__sDir = Split-Path -Parent $PSCommandPath
 $__bkMod = Join-Path $__sDir "..\Backup\BackupModule.ps1"
 if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $__sDir "..\Backup") | Out-Null }
-$__bkSrc = Join-Path $__sDir "Pages\Windows Update CPL\7 Style\system32"
+$__bkSrc = Join-Path $scriptDir "Pages\Windows Update CPL\7 Style\system32"
 if (Test-Path $__bkSrc) { Backup-BeforeCopy -Source $__bkSrc -Destination "C:\Windows\System32" -Recurse -UsePowerRun }
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '.\Pages\Windows Update CPL\7 Style\system32\*' -Destination 'C:\Windows\System32' -Recurse -Force" -Wait -WindowStyle Hidden
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList 'regsvr32 wucltux.dll /s' -WindowStyle Hidden -Wait
-Start-Process ".\..\PowerRun\PowerRun_x64.exe" -ArgumentList 'reg import "Pages\Windows Update CPL\import as TrustedInstaller\WUCLTUX.reg"' -WindowStyle Hidden -Wait
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$scriptDir\Pages\Windows Update CPL\7 Style\system32\*' -Destination 'C:\Windows\System32' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList 'regsvr32 wucltux.dll /s' -WindowStyle Hidden -Wait -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "reg import `"$scriptDir\Pages\Windows Update CPL\import as TrustedInstaller\WUCLTUX.reg`"" -WindowStyle Hidden -Wait -PassThru
+if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
