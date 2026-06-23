@@ -15,7 +15,11 @@
 param()
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 $logFile = "$scriptDir\env-test.log"
+$escapedlogFile = $logFile.Replace("'", "''")
 $errors = 0
 $warnings = 0
 
@@ -67,24 +71,29 @@ if (-not $isAdmin) { Write-Test "Must run as Administrator" "FAIL" }
 
 # 5. Disk space
 $drive = (Get-PSDrive -Name $scriptDir[0]).Free
+$escapeddrive = $drive.Replace("'", "''")
 $freeGB = [math]::Round($drive / 1GB, 1)
 Write-Test "Free disk space: ${freeGB}GB (at least 5GB recommended)"
 if ($freeGB -lt 2) { Write-Test "Low disk space — may not have room for backups" "WARN" }
 
 # 6. PowerRun
 $powerRun = "$scriptDir\PowerRun\PowerRun_x64.exe"
+$escapedpowerRun = $powerRun.Replace("'", "''")
 $prOk = Test-Path $powerRun
+$escapedprOk = if ($null -ne $prOk) { $prOk.ToString().Replace("'", "''") } else { $null }
 Write-Test "PowerRun: $(if($prOk){'found'}else{'MISSING'})"
 if (-not $prOk) { Write-Test "PowerRun_x64.exe is required for TrustedInstaller operations" "FAIL" }
 
 # 7. Resource Hacker
 $resHack = "$scriptDir\resource_hacker\ResourceHacker.exe"
+$escapedresHack = $resHack.Replace("'", "''")
 $rhOk = Test-Path $resHack
 Write-Test "Resource Hacker: $(if($rhOk){'found'}else{'MISSING'})"
 if (-not $rhOk) { Write-Test "Resource Hacker is required by CPL page installers" "WARN" }
 
 # 8. ViVeTool
 $vive = "$scriptDir\ViVeTool\ViVeTool.exe"
+$escapedvive = $vive.Replace("'", "''")
 $viveOk = Test-Path $vive
 Write-Test "ViVeTool: $(if($viveOk){'found'}else{'MISSING'})"
 
@@ -113,6 +122,7 @@ $components = @(
 
 foreach ($comp in $components) {
     $fullPath = Join-Path $scriptDir $comp.Path
+$escapedfullPath = $fullPath.Replace("'", "''")
     if (Test-Path $fullPath) {
         Write-Test "$($comp.Name): OK" "PASS"
     } else {
@@ -124,6 +134,7 @@ foreach ($comp in $components) {
 Write-Host ""
 Write-Host "--- CPL Page Scripts ---" -ForegroundColor Cyan
 $cplDir = "$scriptDir\CPL Restoration 4.0 H1"
+$escapedcplDir = $cplDir.Replace("'", "''")
 $cplScripts = @(
     "BackupAndRestore.ps1", "BiometricDevices.ps1",
     "DefaultPrograms.ps1", "Display.ps1",
@@ -142,6 +153,7 @@ $cplFound = 0
 $cplMissing = 0
 foreach ($s in $cplScripts) {
     $path = Join-Path $cplDir $s
+$escapedpath = $path.Replace("'", "''")
     if (Test-Path $path) {
         $cplFound++
     } else {

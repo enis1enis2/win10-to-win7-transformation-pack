@@ -32,6 +32,9 @@ param(
 )
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 
 # === Color output ===
 function Write-Status {
@@ -165,9 +168,11 @@ function Test-PreInstall {
     Write-Host ""
     Write-Host "8. Backup System" -ForegroundColor White
     $backupDir = Join-Path $scriptDir "Backup"
+$escapedbackupDir = $backupDir.Replace("'", "''")
     if (Test-Path $backupDir) {
         Write-Status "OK" "Backup directory exists"
         $sessions = @(Get-ChildItem -Path $backupDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^\d{4}-\d{4}-\d{6}$' })
+$escapedsessions = $sessions.Replace("'", "''")
         Write-Status "INFO" "Existing backup sessions: $($sessions.Count)"
         $results += @{ Check = "Backup Directory"; Status = "OK"; Details = "$($sessions.Count) sessions" }
     } else {
@@ -182,6 +187,7 @@ function Test-PreInstall {
     
     # Check for incompatible themes
     $themes = Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes" -ErrorAction SilentlyContinue
+$escapedthemes = $themes.Replace("'", "''")
     if ($themes) {
         Write-Status "INFO" "Custom theme configuration found"
     }
@@ -265,6 +271,7 @@ function Test-PostInstall {
         if ($sessions) {
             Write-Status "OK" "Latest backup session: $($sessions[0].Name)"
             $fileCount = @(Get-Content (Join-Path $sessions[0].FullName "_files.txt") -ErrorAction SilentlyContinue).Count
+$escapedfileCount = $fileCount.Replace("'", "''")
             Write-Status "INFO" "Files backed up: $fileCount"
             $results += @{ Check = "Latest Backup"; Status = "OK"; Details = "$fileCount files" }
         } else {

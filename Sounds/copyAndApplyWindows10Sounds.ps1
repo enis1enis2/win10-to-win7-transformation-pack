@@ -1,7 +1,11 @@
 #requires -RunAsAdministrator
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 $powerRun = "$scriptDir\..\PowerRun\PowerRun_x64.exe"
+$escapedpowerRun = $powerRun.Replace("'", "''")
 
 if (-not (Test-Path $powerRun)) {
     Write-Error "PowerRun not found at: $powerRun"
@@ -9,10 +13,13 @@ if (-not (Test-Path $powerRun)) {
 }
 
 $soundsSource = "$scriptDir\Windows 10 Sounds"
+$escapedsoundsSource = $soundsSource.Replace("'", "''")
 $regFile = "$scriptDir\Windows 10 Sounds Settings.reg"
+$escapedregFile = $regFile.Replace("'", "''")
 
 if (Test-Path $soundsSource) {
-    $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$soundsSource\*' -Destination 'C:\Windows\Media' -Recurse -Force"
+    $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedsoundsSource\*' -Destination 'C:\Windows\Media' -Recurse -Force"
+$escapedcopyCmd = $copyCmd.Replace("'", "''")
     Start-Process $powerRun -ArgumentList $copyCmd -Wait -WindowStyle Hidden
     Write-Host "Sound files copied to C:\Windows\Media" -ForegroundColor Green
 } else {

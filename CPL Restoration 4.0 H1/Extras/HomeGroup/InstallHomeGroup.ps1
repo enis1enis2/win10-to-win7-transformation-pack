@@ -14,11 +14,17 @@
 #>
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedscriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $scriptDir.Replace("'", "''")
+$escapedScriptDir = $escapedScriptDir.Replace("'", "''")
 $powerRun = "$scriptDir\..\..\PowerRun\PowerRun_x64.exe"
+$escapedpowerRun = $powerRun.Replace("'", "''")
 $sys32 = "$env:SystemRoot\System32"
+$escapedsys32 = $sys32.Replace("'", "''")
 
 # === Backup existing files before modification ===
 $__bkMod = Join-Path $scriptDir "..\..\Backup\BackupModule.ps1"
+$escaped__bkMod = $__bkMod.Replace("'", "''")
 if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $scriptDir "..\..\Backup") | Out-Null }
 
 function Write-Status {
@@ -29,18 +35,24 @@ function Write-Status {
 # Step 1: Replace stobject.dll
 Write-Status "=== Step 1: Replacing stobject.dll ===" -Color Cyan
 $dllSrc = "$scriptDir\Windows\System32\stobject.dll"
+$escapeddllSrc = $dllSrc.Replace("'", "''")
 $muiSrc = "$scriptDir\Windows\System32\en-US\stobject.dll.mui"
+$escapedmuiSrc = $muiSrc.Replace("'", "''")
 $dllDst = "$sys32\stobject.dll"
+$escapeddllDst = $dllDst.Replace("'", "''")
 $muiDst = "$sys32\en-US\stobject.dll.mui"
+$escapedmuiDst = $muiDst.Replace("'", "''")
 
 if ((Test-Path $dllSrc) -and (Test-Path $muiSrc)) {
     # Backup original files before replacing
     Backup-File -Path "$dllDst" -UsePowerRun
     Backup-File -Path "$muiDst" -UsePowerRun
     
-    $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$dllSrc' -Destination '$dllDst' -Force"
+    $copyCmd = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapeddllSrc' -Destination '$escapeddllDst' -Force"
+$escapedcopyCmd = $copyCmd.Replace("'", "''")
     Start-Process $powerRun -ArgumentList $copyCmd -Wait -WindowStyle Hidden
-    $copyCmd2 = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$muiSrc' -Destination '$muiDst' -Force"
+    $copyCmd2 = "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedmuiSrc' -Destination '$escapedmuiDst' -Force"
+$escapedcopyCmd2 = $copyCmd2.Replace("'", "''")
     Start-Process $powerRun -ArgumentList $copyCmd2 -Wait -WindowStyle Hidden
     Write-Status "  stobject.dll replaced" -Color Green
 } else {
@@ -52,6 +64,7 @@ if ((Test-Path $dllSrc) -and (Test-Path $muiSrc)) {
 # Step 2: Import registry keys (Normal)
 Write-Status "=== Step 2: Importing registry keys (Normal) ===" -Color Cyan
 $regNormal = "$scriptDir\Normal\CPL.reg"
+$escapedregNormal = $regNormal.Replace("'", "''")
 if (Test-Path $regNormal) {
     Start-Process reg.exe -ArgumentList "import `"$regNormal`"" -Wait -WindowStyle Hidden
     Write-Status "  Normal registry imported" -Color Green
@@ -64,6 +77,7 @@ Write-Status "=== Step 3: Importing registry keys (TrustedInstaller) ===" -Color
 $tiRegs = @("HomeGroupListener.reg", "HomeGroupProvider.reg")
 foreach ($reg in $tiRegs) {
     $regFile = "$scriptDir\TI\$reg"
+$escapedregFile = $regFile.Replace("'", "''")
     if ((Test-Path $regFile) -and (Test-Path $powerRun)) {
         Start-Process $powerRun -ArgumentList "reg import `"$regFile`"" -Wait -WindowStyle Hidden
         Write-Status "  $reg imported" -Color Green
@@ -75,6 +89,7 @@ foreach ($reg in $tiRegs) {
 # Step 4: Add svchost entries
 Write-Status "=== Step 4: Configuring svchost entries ===" -Color Cyan
 $svchostPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Svchost"
+$escapedsvchostPath = $svchostPath.Replace("'", "''")
 
 try {
     $localSysNet = Get-ItemProperty -Path $svchostPath -Name "LocalSystemNetworkRestricted" -ErrorAction Stop
