@@ -136,9 +136,8 @@ function Invoke-PackProcess {
         $powerRun = "$scriptDir\PowerRun\PowerRun_x64.exe"
         if (-not (Test-Path $powerRun)) {
             Write-Log "PowerRun not found at $powerRun" "ERROR"
-            return $null
+            throw "PowerRun missing"
         }
-        # If we use PowerRun, the original FilePath and Arguments become arguments to PowerRun
         $targetExe = $powerRun
         $targetArgs = "`"$FilePath`" $Arguments"
     }
@@ -147,24 +146,29 @@ function Invoke-PackProcess {
         $p = Start-Process $targetExe -ArgumentList $targetArgs -Wait -PassThru -NoNewWindow:$NoNewWindow -WindowStyle $WindowStyle
         if (-not $p) {
             Write-Log "Failed to start process: $FilePath" "ERROR"
-            return $null
+            throw "Process failed to start"
         }
 
         if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) {
-            Write-Log "Process '$FilePath' failed with exit code $($p.ExitCode)" "ERROR"
+            Write-Log "Process [$FilePath] failed with exit code $($p.ExitCode)" "ERROR"
+            throw "Process exited with error code $($p.ExitCode)"
         }
 
         return $p
     } catch {
-        Write-Log "Exception starting process '$FilePath': $_" "ERROR"
-        return $null
+        Write-Log "Error executing [$FilePath]: $_" "ERROR"
+        throw $_
     }
 }
 
 function Invoke-PowerRun {
     param([string]$Command)
-    $p = Invoke-PackProcess -FilePath $Command -UsePowerRun -WindowStyle Hidden
-    return ($null -ne $p -and $p.ExitCode -eq 0)
+    try {
+        $p = Invoke-PackProcess -FilePath $Command -UsePowerRun -WindowStyle Hidden
+        return ($null -ne $p -and ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010))
+    } catch {
+        return $false
+    }
 }
 
 function Install-Msi {
@@ -173,14 +177,12 @@ function Install-Msi {
         Write-Log "MSI not found: $MsiPath" "WARN"
         return $false
     }
-    $p = Invoke-PackProcess -FilePath "msiexec.exe" -Arguments "/i `"$MsiPath`" /passive /norestart" -NoNewWindow
-    if ($null -eq $p) { return $false }
-
-    if ($p.ExitCode -eq 3010) {
-        Write-Log "MSI installed but system restart is required" "WARN"
-        return $true
+    try {
+        $p = Invoke-PackProcess -FilePath "msiexec.exe" -Arguments "/i `"$MsiPath`" /passive /norestart" -NoNewWindow
+        return ($null -ne $p -and ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010))
+    } catch {
+        return $false
     }
-    return ($p.ExitCode -eq 0)
 }
 
 function Install-Executable {
@@ -189,8 +191,28 @@ function Install-Executable {
         Write-Log "Executable not found: $ExePath" "WARN"
         return $false
     }
-    $p = Invoke-PackProcess -FilePath $ExePath -Arguments $Args
-    return ($null -ne $p -and $p.ExitCode -eq 0)
+    try {
+        $p = Invoke-PackProcess -FilePath $ExePath -Arguments $Args
+        return ($null -ne $p -and $p.ExitCode -eq 0)
+    } catch {
+        return $false
+    }
+}
+
+function Install-StartMenu {
+    Write-Log "--- Start Menu & Taskbar ---"
+    $smDir = "$scriptDir\StartMenuAndTaskBar"
+    if (-not (Test-Path $smDir)) {
+        Write-Log "StartMenu directory not found" "WARN"
+        return $false
+    }
+
+    Write-Log "  Two options available:" "INFO"
+    Write-Log "    1. Explorer7 (experimental, may break UWP apps) — requires Windows 7 ISO" "INFO"
+    Write-Log "    2. StartIsBack++ (paid, stable) — run installer then configure" "INFO"
+    Write-Log "  See StartMenuAndTaskBar\CHOOSE_ONLY_ONE for details" "INFO"
+    Write-Host "  MANUAL STEP: Install your choice from StartMenuAndTaskBar" -ForegroundColor Yellow
+    return $true
 }
 
 # --- Component Installers ---
@@ -218,9 +240,11 @@ function Install-Theme {
         }
         $themeScript = "$scriptDir\Themes\copy.ps1"
         if (Test-Path $themeScript) {
-            & $themeScript
-            if (-not $?) {
-                Write-Log "Theme script failed with exit code $LASTEXITCODE" "ERROR"
+            try {
+                & $themeScript
+                if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "Script exited with code $LASTEXITCODE" }
+            } catch {
+                Write-Log "Theme script failed: $_" "ERROR"
                 return $false
             }
             Write-Log "Theme files copied. Available themes (30 variants):" "OK"
@@ -291,9 +315,11 @@ function Install-WindhawkResources {
     }
     $resourceScript = "$scriptDir\Windhawk\copyResources.ps1"
     if (Test-Path $resourceScript) {
-        & $resourceScript
-        if (-not $?) {
-            Write-Log "Windhawk resource script failed with exit code $LASTEXITCODE" "ERROR"
+        try {
+            & $resourceScript
+            if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "Script exited with code $LASTEXITCODE" }
+        } catch {
+            Write-Log "Windhawk resource script failed: $_" "ERROR"
             return $false
         }
         Write-Log "ResourceRedirect files copied" "OK"
@@ -318,9 +344,11 @@ function Install-Sounds {
     }
     $sndScript = "$scriptDir\Sounds\copyAndApplyWindows7Sounds.ps1"
     if (Test-Path $sndScript) {
-        & $sndScript
-        if (-not $?) {
-            Write-Log "Sound script failed with exit code $LASTEXITCODE" "ERROR"
+        try {
+            & $sndScript
+            if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "Script exited with code $LASTEXITCODE" }
+        } catch {
+            Write-Log "Sound script failed: $_" "ERROR"
             return $false
         }
         Write-Log "Windows 7 sound scheme applied" "OK"
@@ -338,9 +366,11 @@ function Install-Branding {
     }
     $brScript = "$scriptDir\Branding\copy.ps1"
     if (Test-Path $brScript) {
-        & $brScript
-        if (-not $?) {
-            Write-Log "Branding script failed with exit code $LASTEXITCODE" "ERROR"
+        try {
+            & $brScript
+            if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "Script exited with code $LASTEXITCODE" }
+        } catch {
+            Write-Log "Branding script failed: $_" "ERROR"
             return $false
         }
         Write-Log "Windows 7 branding applied" "OK"
@@ -388,9 +418,11 @@ function Install-CPL {
             $psPath = "$cplDir\$ps"
             if (Test-Path $psPath) {
                 Write-Log "  Running preparation: $ps" "INFO"
-                & $psPath
-                if (-not $?) {
-                    Write-Log "  Preparation script $ps failed" "ERROR"
+                try {
+                    & $psPath
+                    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "Prep script $ps failed with code $LASTEXITCODE" }
+                } catch {
+                    Write-Log "  Preparation script $ps failed: $_" "ERROR"
                     return $false
                 }
             } else {
@@ -422,13 +454,9 @@ function Install-CPL {
                 try {
                     $ErrorActionPreference = "Stop"
                     & $path
-                    if (-not $?) {
-                        Write-Log "  $s failed with exit code $LASTEXITCODE" "ERROR"
-                        $failCount++
-                    } else {
-                        Write-Log "  $s completed" "OK"
-                        $successCount++
-                    }
+                    if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "Exited with code $LASTEXITCODE" }
+                    Write-Log "  $s completed" "OK"
+                    $successCount++
                 } catch {
                     Write-Log "  $s failed: $_" "ERROR"
                     $failCount++
@@ -454,9 +482,11 @@ function Install-UserTiles {
     }
     $tileScript = "$scriptDir\User tiles\copy.ps1"
     if (Test-Path $tileScript) {
-        & $tileScript
-        if (-not $?) {
-            Write-Log "User tiles script failed with exit code $LASTEXITCODE" "ERROR"
+        try {
+            & $tileScript
+            if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "Script exited with code $LASTEXITCODE" }
+        } catch {
+            Write-Log "User tiles script failed: $_" "ERROR"
             return $false
         }
         Write-Log "User tiles installed" "OK"
@@ -476,7 +506,7 @@ function Install-OpenWithEx {
         }
         Write-Log "OpenWithEx installation failed" "ERROR"
     } else {
-        Write-Log "OpenWithEx installer not found" "WARN"
+        Write-Log "OpenWithEx installer not found at $exe" "WARN"
     }
     return $false
 }
@@ -492,7 +522,7 @@ function Install-Winaero {
         }
         Write-Log "Winaero Tweaker installation failed" "ERROR"
     } else {
-        Write-Log "Winaero Tweaker installer not found" "WARN"
+        Write-Log "Winaero Tweaker installer not found at $exe" "WARN"
     }
     return $false
 }
@@ -519,22 +549,6 @@ function Install-Games {
     return $true
 }
 
-function Install-StartMenu {
-    Write-Log "--- Start Menu & Taskbar ---"
-    $smDir = "$scriptDir\StartMenuAndTaskBar"
-    if (-not (Test-Path $smDir)) {
-        Write-Log "StartMenu directory not found" "WARN"
-        return $false
-    }
-
-    Write-Log "  Two options available:" "INFO"
-    Write-Log "    1. Explorer7 (experimental, may break UWP apps) — requires Windows 7 ISO" "INFO"
-    Write-Log "    2. StartIsBack++ (paid, stable) — run installer then configure" "INFO"
-    Write-Log "  See StartMenuAndTaskBar\CHOOSE_ONLY_ONE for details" "INFO"
-    Write-Log "  MANUAL STEP: Install your choice from StartMenuAndTaskBar" "WARN"
-    return $true
-}
-
 function Install-HackBGRT {
     Write-Log "--- HackBGRT (Boot Screen) ---"
     $hackDir = "$scriptDir\HackBGRT-2.6.0 (Use with caution!)"
@@ -557,9 +571,11 @@ function Install-HomeGroup {
     }
     $hgScript = "$scriptDir\CPL Restoration 4.0 H1\Extras\HomeGroup\InstallHomeGroup.ps1"
     if (Test-Path $hgScript) {
-        & $hgScript
-        if (-not $?) {
-            Write-Log "HomeGroup script failed with exit code $LASTEXITCODE" "ERROR"
+        try {
+            & $hgScript
+            if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "Script exited with code $LASTEXITCODE" }
+        } catch {
+            Write-Log "HomeGroup script failed: $_" "ERROR"
             return $false
         }
         Write-Log "HomeGroup restoration complete" "OK"
@@ -577,9 +593,11 @@ function Install-DefaultPrograms {
     }
     $dpScript = "$scriptDir\CPL Restoration 4.0 H1\DefaultPrograms.ps1"
     if (Test-Path $dpScript) {
-        & $dpScript
-        if (-not $?) {
-            Write-Log "DefaultPrograms script failed with exit code $LASTEXITCODE" "ERROR"
+        try {
+            & $dpScript
+            if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) { throw "Script exited with code $LASTEXITCODE" }
+        } catch {
+            Write-Log "DefaultPrograms script failed: $_" "ERROR"
             return $false
         }
         Write-Log "Default Programs CPL fix applied" "OK"
