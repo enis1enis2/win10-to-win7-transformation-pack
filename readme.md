@@ -13,7 +13,7 @@ Before proceeding, please create a full system backup. Use at your own risk.
 - Windows 10 version 22H2 (earlier versions have not been tested, but may work)
 - PowerShell execution policy must be configured. Run PowerShell as Administrator and execute: 
     ```powershell
-    Set-ExecutionPolicy RemoteSigned
+    Set-ExecutionPolicy Unrestricted
     ```
 - If you plan to use Explorer7, ensure that you have a Windows 7 ISO or DVD matching the architecture (x86 or x64) and language of your current system. At this time, only the en-US version is supported.
 
@@ -36,7 +36,7 @@ Before proceeding, please create a full system backup. Use at your own risk.
 
 4. **Set execution policy** (one-time):
    ```powershell
-   Set-ExecutionPolicy RemoteSigned -Scope Process
+   Set-ExecutionPolicy Unrestricted -Scope Process
    ```
 
 5. **Run the interactive installer** — a numbered menu shows all components:
