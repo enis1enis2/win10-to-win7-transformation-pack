@@ -90,7 +90,7 @@ function Test-Prerequisites {
 
     $policy = Get-ExecutionPolicy
     if ($policy -eq "Restricted") {
-        Write-Log "PowerShell execution policy is Restricted. Run: Set-ExecutionPolicy RemoteSigned" "ERROR"
+        Write-Log "PowerShell execution policy is Restricted. Run: Set-ExecutionPolicy Unrestricted" "ERROR"
         $ok = $false
     }
 
