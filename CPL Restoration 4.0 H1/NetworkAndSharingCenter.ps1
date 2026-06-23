@@ -31,8 +31,8 @@ Start-Process $powerRun -ArgumentList "reg import `"$pageDir\Import as TrustedIn
 
 # Copy network dialogs scripts to System32
 # Backup: network dialogs before overwriting
-$__nscSrc = Join-Path \$pageDir "7 Style\Windows 7 Network Dialogs\system32"
-if (Test-Path \$__nscSrc) { Backup-BeforeCopy -Source \$__nscSrc -Destination "C:\Windows\System32" -Recurse -UsePowerRun }
+$__nscSrc = Join-Path $pageDir "7 Style\Windows 7 Network Dialogs\system32"
+if (Test-Path $__nscSrc) { Backup-BeforeCopy -Source $__nscSrc -Destination "C:\Windows\System32" -Recurse -UsePowerRun }
 Start-Process $powerRun -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$pageDir\7 Style\Windows 7 Network Dialogs\system32\*' -Destination 'C:\Windows\System32' -Recurse -Force" -Wait -WindowStyle Hidden
 
 # Import PNIDUI registry for network flyout

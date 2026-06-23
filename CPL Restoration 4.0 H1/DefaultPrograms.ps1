@@ -1,11 +1,12 @@
 #requires -RunAsAdministrator
 
 $scriptDir = Split-Path -Parent $PSCommandPath
-$powerRun = "$scriptDir\PowerRun\PowerRun_x64.exe"
+$powerRun = "$scriptDir\..\PowerRun\PowerRun_x64.exe"
+$regFile = Join-Path $scriptDir "Pages\Default Programs CPL\import as TrustedInstaller\defaultprograms.reg"
 
 if (Test-Path $powerRun) {
-    Start-Process $powerRun -ArgumentList 'reg import "Pages\Default Programs CPL\import as TrustedInstaller\defaultprograms.reg"' -WindowStyle Hidden -Wait
+    Start-Process $powerRun -ArgumentList "reg import `"$regFile`"" -WindowStyle Hidden -Wait
 } else {
     Write-Host "PowerRun not found, importing registry directly..." -ForegroundColor Yellow
-    reg import "$scriptDir\Pages\Default Programs CPL\import as TrustedInstaller\defaultprograms.reg"
+    reg import "$regFile"
 }

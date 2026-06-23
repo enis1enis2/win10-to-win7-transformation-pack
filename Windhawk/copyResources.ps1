@@ -1,7 +1,7 @@
 # === Backup existing files before modification ===
 $__sDir = Split-Path -Parent $PSCommandPath
 $__bkMod = Join-Path $__sDir "..\Backup\BackupModule.ps1"
-if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $__sDir "") | Out-Null }
+if (Test-Path $__bkMod) { . $__bkMod; Initialize-Backup -BackupRoot (Join-Path $__sDir "..\Backup") | Out-Null }
 #requires -RunAsAdministrator
 
 $scriptDir = Split-Path -Parent $PSCommandPath
