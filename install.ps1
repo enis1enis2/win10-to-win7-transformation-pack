@@ -629,16 +629,16 @@ function Test-Dependencies {
 
 # --- Interactive menu ---
 function Show-Menu {
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "  Windows 10 → Windows 7 Transformation" -ForegroundColor Cyan
-    Write-Host "  Pack Installer" -ForegroundColor Cyan
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Select components to install (by number)." -ForegroundColor White
-    Write-Host "Separate multiple numbers with commas (e.g. 1,3,5)." -ForegroundColor White
-    Write-Host "Enter 'A' for all, 'Q' to quit." -ForegroundColor White
-    Write-Host ""
+    Clear-Host
+    Write-Host "`n  ########################################" -ForegroundColor Cyan
+    Write-Host "  #                                      #" -ForegroundColor Cyan
+    Write-Host "  #  WINDOWS 7 TRANSFORMATION PACK       #" -ForegroundColor Cyan
+    Write-Host "  #  Professional Installer              #" -ForegroundColor Cyan
+    Write-Host "  #                                      #" -ForegroundColor Cyan
+    Write-Host "  ########################################`n" -ForegroundColor Cyan
+
+    Write-Host "  Select components to install:" -ForegroundColor White
+    Write-Host "  (Multiple choices: 1,3,5  All: A  Quit: Q)`n" -ForegroundColor Gray
 
     for ($i = 0; $i -lt $componentMap.Count; $i++) {
         $risk = if ($componentMap[$i].Risk) { $componentMap[$i].Risk } else { "Unknown" }
@@ -649,9 +649,14 @@ function Show-Menu {
             "Critical" { "Magenta" }
             Default { "White" }
         }
-        Write-Host "  $($i+1). $($componentMap[$i].Name) " -NoNewline -ForegroundColor Yellow
-        Write-Host "[$risk Risk]" -ForegroundColor $riskColor
-        Write-Host "      $($componentMap[$i].Desc)" -ForegroundColor Gray
+
+        $num = "$($i+1)".PadLeft(2)
+        Write-Host "  [$num] " -NoNewline -ForegroundColor Yellow
+        Write-Host "$($componentMap[$i].Name.PadRight(18))" -NoNewline -ForegroundColor White
+        Write-Host "[Risk: " -NoNewline -ForegroundColor Gray
+        Write-Host "$($risk.PadRight(8))" -NoNewline -ForegroundColor $riskColor
+        Write-Host "] " -NoNewline -ForegroundColor Gray
+        Write-Host "- $($componentMap[$i].Desc)" -ForegroundColor Gray
     }
     Write-Host ""
 }
@@ -659,12 +664,10 @@ function Show-Menu {
 function Show-PreflightReport {
     param([string[]]$SelectedComponents)
 
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "          PREFLIGHT RISK REPORT" -ForegroundColor Cyan
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "The following components will be installed:" -ForegroundColor White
-    Write-Host ""
+    Write-Host "`n  ----------------------------------------" -ForegroundColor Cyan
+    Write-Host "  PREFLIGHT INSTALLATION SUMMARY" -ForegroundColor Cyan
+    Write-Host "  ----------------------------------------" -ForegroundColor Cyan
+    Write-Host "  The following components will be applied:`n" -ForegroundColor White
 
     $maxRisk = "Low"
     foreach ($compName in $SelectedComponents) {
@@ -688,7 +691,7 @@ function Show-PreflightReport {
     }
 
     Write-Host ""
-    Write-Host "SUMMARY RISK LEVEL: " -NoNewline
+    Write-Host "`n  Summary Risk Level: " -NoNewline -ForegroundColor White
     $summaryColor = switch ($maxRisk) {
         "Low" { "Green" }
         "Medium" { "Yellow" }
@@ -698,11 +701,10 @@ function Show-PreflightReport {
     Write-Host "$maxRisk" -ForegroundColor $summaryColor
 
     if ($maxRisk -eq "Critical" -or $maxRisk -eq "High") {
-        Write-Host "WARNING: High/Critical risk components can affect system stability or boot." -ForegroundColor Red
-        Write-Host "Ensure you have a full system backup before proceeding." -ForegroundColor Red
+        Write-Host "  [!] WARNING: High/Critical risk components can affect system stability." -ForegroundColor Red
+        Write-Host "  Ensure you have a full system backup before proceeding." -ForegroundColor Red
     }
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host ""
+    Write-Host "  ----------------------------------------`n" -ForegroundColor Cyan
 }
 
 function Install-Components {
@@ -762,16 +764,17 @@ function Install-Components {
         Write-Log ""
     }
 
-    Write-Log "========================================" "INFO"
-    Write-Log "Installation complete." "OK"
-    Write-Log "Components installed: $successCount" "OK"
-    if ($failCount -gt 0) { Write-Log "Components with errors: $failCount" "ERROR" }
-    Write-Log "Log saved to: $LogPath" "INFO"
-    Write-Log "========================================" "INFO"
+    Write-Host "`n  ========================================" -ForegroundColor Cyan
+    Write-Host "  INSTALLATION COMPLETE" -ForegroundColor Cyan
+    Write-Host "  ========================================" -ForegroundColor Cyan
+    Write-Host "  Successful components: $successCount" -ForegroundColor Green
+    if ($failCount -gt 0) { Write-Host "  Failed components:     $failCount" -ForegroundColor Red }
+    Write-Host "  Log: $LogPath" -ForegroundColor Gray
+    Write-Host "  ========================================`n" -ForegroundColor Cyan
 
-    Write-Host ""
-    Write-Host "IMPORTANT: Some components require manual steps (see log)." -ForegroundColor Yellow
-    Write-Host "A reboot may be needed for some changes to take effect." -ForegroundColor Yellow
+    Write-Host "  NOTICE: Some components require manual post-installation steps." -ForegroundColor Yellow
+    Write-Host "  Please review the log and README for details." -ForegroundColor Yellow
+    Write-Host "  A system reboot is recommended.`n" -ForegroundColor Yellow
 }
 
 # --- Main ---
@@ -829,16 +832,15 @@ try {
         Show-PreflightReport -SelectedComponents $selectedComponents
 
         # Generate Change Inventory (Static list based on manifest)
-        Write-Host "CHANGE INVENTORY:" -ForegroundColor Cyan
+        Write-Host "  CHANGE INVENTORY:" -ForegroundColor Cyan
         foreach ($compName in $selectedComponents) {
             $comp = $componentMap | Where-Object { $_.Name -eq $compName }
-            Write-Host "  [$($comp.Name)]" -ForegroundColor Yellow
-            Write-Host "    Purpose: $($comp.Desc)" -ForegroundColor Gray
-            if ($comp.Deps) { Write-Host "    Dependencies: $($comp.Deps -join ', ')" -ForegroundColor Gray }
+            Write-Host "  - [$($comp.Name)] $($comp.Desc)" -ForegroundColor Gray
+            if ($comp.Deps) { Write-Host "      Depends on: $($comp.Deps -join ', ')" -ForegroundColor DarkGray }
         }
         Write-Host ""
 
-        $confirm = Read-Host "Do you want to proceed with the installation? (Y/N)"
+        $confirm = Read-Host "  Proceed with installation? (Y/N)"
         if ($confirm -ne 'Y' -and $confirm -ne 'y') {
             Write-Log "Installation cancelled by user" "INFO"
             exit 0
