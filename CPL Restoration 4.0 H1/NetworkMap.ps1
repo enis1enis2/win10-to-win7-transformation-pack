@@ -1,5 +1,6 @@
 #requires -RunAsAdministrator
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedScriptDir = $scriptDir.Replace("'", "''")
 
 Set-Location -Path (Split-Path -Parent $PSCommandPath)
 

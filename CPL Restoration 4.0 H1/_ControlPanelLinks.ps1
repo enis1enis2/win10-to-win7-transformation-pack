@@ -1,5 +1,6 @@
 #requires -RunAsAdministrator
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedScriptDir = $scriptDir.Replace("'", "''")
 $powerRun = "$scriptDir\..\PowerRun\PowerRun_x64.exe"
 
 $cplSource = "$scriptDir\Control Panel Links\Universal\7 Style\system32"

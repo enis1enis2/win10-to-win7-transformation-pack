@@ -1,5 +1,6 @@
 #requires -RunAsAdministrator
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedScriptDir = $scriptDir.Replace("'", "''")
 $powerRun = "$scriptDir\..\PowerRun\PowerRun_x64.exe"
 $regFile = "$scriptDir\Patch CPL Redirection\desktopContextPatch.reg"
 $vivetool = "$scriptDir\..\ViVeTool\ViVeTool.exe"

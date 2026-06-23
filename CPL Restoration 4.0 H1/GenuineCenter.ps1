@@ -1,5 +1,6 @@
 #requires -RunAsAdministrator
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedScriptDir = $scriptDir.Replace("'", "''")
 # You have to use this together with the 8.X styled System CPL located at "CPL Restoration\Pages\System CPL\8.X Style" to make it appear correctly.
 
 # Ensure script runs in its own directory
@@ -24,12 +25,12 @@ if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $
 #\ActionCenterCPL.dll.mun" into "ActionCenterCPL.dll.mun" 
 #file located at "C:\Windows\SystemResources".
 #Choose "overwrite" if prompted.
-$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\SystemResources\ActionCenterCPL.dll.mun' -Destination '$scriptDir\Pages\Genuine Center CPL\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\SystemResources\ActionCenterCPL.dll.mun' -Destination '$escapedScriptDir\Pages\Genuine Center CPL\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
 if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
 $p = Start-Process "$scriptDir\..\resource_hacker\ResourceHacker" -ArgumentList "-open `"$scriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mun`"", '-resource "$scriptDir\Pages\Genuine Center CPL\systemresources\ActionCenterCPL.dll.mun\genuinepage.res"', "-save `"$scriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mun`"", '-action addoverwrite'
-Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$scriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mun' -Destination 'C:\Windows\SystemResources\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedScriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mun' -Destination 'C:\Windows\SystemResources\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
 if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
-$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path '$scriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mun' -Force" -Wait -WindowStyle Hidden -PassThru
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path '$escapedScriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mun' -Force" -Wait -WindowStyle Hidden -PassThru
 if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
 
 
@@ -38,12 +39,12 @@ if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $
 # \ActionCenterCPL.dll.mui" into "ActionCenterCPL.dll.mui"
 #  file located at "C:\Windows\System32\en-US". 
 # Choose "overwrite" if prompted.
-$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\System32\en-US\ActionCenterCPL.dll.mui' -Destination '$scriptDir\Pages\Genuine Center CPL\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path 'C:\Windows\System32\en-US\ActionCenterCPL.dll.mui' -Destination '$escapedScriptDir\Pages\Genuine Center CPL\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
 if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
 $p = Start-Process "$scriptDir\..\resource_hacker\ResourceHacker" -ArgumentList "-open `"$scriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mui`"", '-resource "$scriptDir\Pages\Genuine Center CPL\system32\en-US\ActionCenterCPL.dll.mui\StringTable.res"', "-save `"$scriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mui`"", '-action addoverwrite'
-Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$scriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mui' -Destination 'C:\Windows\System32\en-US\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedScriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mui' -Destination 'C:\Windows\System32\en-US\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
 if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
-$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path '$scriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mui' -Force" -Wait -WindowStyle Hidden -PassThru
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Remove-Item -Path '$escapedScriptDir\Pages\Genuine Center CPL\ActionCenterCPL.dll.mui' -Force" -Wait -WindowStyle Hidden -PassThru
 if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
 
 
@@ -53,6 +54,6 @@ if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $
 # "CPL Restoration\Pages\Genuine Center CPL\system32\en-us"
 # to "C:\Windows\System32" and "C:\Windows\System32\en-us" 
 # respectively.
-$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$scriptDir\Pages\Genuine Center CPL\system32\*' -Destination 'C:\Windows\System32\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
+$p = Start-Process "$scriptDir\..\PowerRun\PowerRun_x64.exe" -ArgumentList "powershell -ExecutionPolicy Bypass -Command Copy-Item -Path '$escapedScriptDir\Pages\Genuine Center CPL\system32\*' -Destination 'C:\Windows\System32\' -Recurse -Force" -Wait -WindowStyle Hidden -PassThru
 if ($null -eq $p -or $p.ExitCode -ne 0) { throw "Command failed with exit code $($p.ExitCode)" }
 

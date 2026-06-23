@@ -1,6 +1,7 @@
 #requires -RunAsAdministrator
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$escapedScriptDir = $scriptDir.Replace("'", "''")
 $powerRun = "$scriptDir\..\PowerRun\PowerRun_x64.exe"
 $regFile = Join-Path $scriptDir "Pages\Default Programs CPL\Import as TrustedInstaller\FixDeadLinks.reg"
 
